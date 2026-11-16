@@ -1,0 +1,3236 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="dashboard">
+  <meta name="design-style" content="vitals">
+  <title>Gestione Turni e Human Capital Management in Sanità</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Figtree:wght@300..900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+
+      /* Page and surfaces (Vitals) */
+      --background: #ffffff;
+      --surface-container-low: #f1f7f8;
+      --surface-container: #e3f1f3;
+      --surface-container-high: #d5e9ec;
+
+      /* Text */
+      --on-surface: #1b2b33;
+      --on-surface-variant: #46585f;
+
+      /* Rules */
+      --outline: #7b9198;
+      --outline-variant: #d5e3e5;
+
+      /* Accents */
+      --primary: #0f7c8a;
+      --primary-hover: #0b636e;
+      --on-primary: #ffffff;
+      --primary-container: #e3f1f3;
+      --on-primary-container: #0a5560;
+      --secondary: #1d5e3a;
+      --tertiary: #2e7d4f;
+      --error: #b3261e;
+      --on-error: #ffffff;
+
+      /* Data series & Semantic status */
+      --data-1: #0f7c8a;
+      --data-2: #2e7d4f;
+      --data-3: #b86e00;
+      --data-4: #5c5fb0;
+      --data-context: #b8c7ca;
+
+      --positive: #2e7d4f;
+      --positive-bg: #e7f3ec;
+      --warning: #b86e00;
+      --warning-bg: #fdf4e3;
+      --warning-text: #7d4900;
+      --error-bg: #fbeceb;
+      --blue-status: #195eb5;
+      --blue-status-bg: #e8f1fc;
+      --neutral-bg: #eef3f4;
+
+      /* Focus */
+      --focus: #0f7c8a;
+
+      /* Fonts */
+      --font-headline: 'Figtree', sans-serif;
+      --font-body: 'Atkinson Hyperlegible', sans-serif;
+      --font-label: 'Figtree', sans-serif;
+
+      /* Type scale (Dashboard) */
+      --display-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem);
+      --headline-size: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+      --subhead-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Shape */
+      --rounded: 0.625rem;
+      --rounded-sm: 0.375rem;
+      --rounded-lg: 0.875rem;
+      --rounded-full: 9999px;
+
+      /* Spacing scale */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 420ms;
+
+      /* Style effects */
+      --top-bar: 6px solid var(--primary);
+      --status-bar-width: 4px;
+      --card-border: 1px solid var(--outline-variant);
+      --card-lift: 0 1px 2px rgb(27 43 51 / 0.05), 0 6px 16px rgb(27 43 51 / 0.05);
+      --focus-ring: 0 0 0 3px var(--primary);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header { position: static !important; }
+
+    .page-shell {
+      border-top: var(--top-bar);
+      min-height: 100vh;
+    }
+
+    .page-grid {
+      display: grid;
+      gap: var(--space-lg);
+      padding: var(--space-lg);
+      max-width: 1380px;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* Focus rings */
+    :focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-family: var(--font-headline);
+      color: var(--on-surface);
+      margin: 0;
+      letter-spacing: -0.015em;
+    }
+    .title {
+      font-size: var(--display-size);
+      font-weight: 800;
+      line-height: 1.08;
+    }
+    .section-title {
+      font-size: var(--headline-size);
+      font-weight: 800;
+      line-height: 1.15;
+    }
+    .card-title {
+      font-size: var(--subhead-size);
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .lede {
+      font-size: 1.05em;
+      line-height: 1.55;
+      color: var(--on-surface-variant);
+      max-width: 68ch;
+      margin: var(--space-xs) 0 0 0;
+    }
+    .kicker {
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: var(--label-size);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--on-surface-variant);
+    }
+    .tabular {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Header & Org Hierarchy Bar */
+    .app-header {
+      background: var(--background);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-md);
+    }
+    .header-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+    }
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .hierarchy-bar {
+      background: var(--surface-container-low);
+      border: var(--card-border);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(260px, 1.2fr);
+      gap: var(--space-md);
+      align-items: end;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .field-label {
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: var(--label-size);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--on-surface-variant);
+    }
+    .select-control, .input-control, .textarea-control {
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      color: var(--on-surface);
+      background-color: var(--background);
+      border: 1px solid var(--outline);
+      border-radius: var(--rounded);
+      padding: 0.55rem var(--space-md);
+      min-height: 44px;
+      transition: border-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .select-control {
+      padding-right: 2.25rem;
+    }
+    .select-control:focus, .input-control:focus, .textarea-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-container);
+      outline: none;
+    }
+    .textarea-control {
+      min-height: 88px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .coordinator-card {
+      background: var(--background);
+      border: var(--card-border);
+      border-left: var(--status-bar-width) solid var(--primary);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-height: 44px;
+      justify-content: center;
+    }
+    .coord-names {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--on-surface);
+    }
+    .coord-meta {
+      font-size: 0.8rem;
+      color: var(--on-surface-variant);
+    }
+
+    /* Navigation Tabs */
+    .main-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      border-bottom: 1px solid var(--outline-variant);
+      padding-bottom: 0;
+    }
+    .nav-tab {
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: 0.95rem;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--on-surface-variant);
+      padding: var(--space-sm) var(--space-md);
+      min-height: 44px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      transition: color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+      border-radius: var(--rounded) var(--rounded) 0 0;
+    }
+    .nav-tab:hover {
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+    }
+    .nav-tab[aria-selected="true"] {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background-color: var(--background);
+    }
+
+    /* Buttons */
+    .btn {
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      min-height: 44px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      border: 1px solid transparent;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--on-primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+    .btn-secondary {
+      background-color: var(--background);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background-color: var(--surface-container-low);
+    }
+    .btn-ghost {
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      border-color: var(--outline-variant);
+    }
+    .btn-ghost:hover:not(:disabled) {
+      background-color: var(--surface-container);
+    }
+    .btn-sm {
+      min-height: 36px;
+      padding: var(--space-xs) var(--space-sm);
+      font-size: 0.82rem;
+    }
+
+    /* Cards & Status Cards */
+    .panel {
+      background: var(--background);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-md);
+    }
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-md);
+      border-bottom: 1px solid var(--outline-variant);
+      padding-bottom: var(--space-md);
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+    .status-card {
+      background: var(--background);
+      border: var(--card-border);
+      border-left: var(--status-bar-width) solid var(--primary);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .status-card[data-status="ok"] { border-left-color: var(--tertiary); }
+    .status-card[data-status="warn"] { border-left-color: var(--warning); }
+    .status-card[data-status="alert"] { border-left-color: var(--error); }
+    .status-card[data-status="blue"] { border-left-color: var(--blue-status); }
+
+    .kpi-value {
+      font-family: var(--font-headline);
+      font-weight: 800;
+      font-size: clamp(1.6rem, 1.3rem + 1vw, 2.1rem);
+      line-height: 1.1;
+      color: var(--on-surface);
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-caption {
+      font-size: 0.86rem;
+      color: var(--on-surface-variant);
+    }
+    .kpi-caption[data-status="ok"] { color: var(--secondary); font-weight: 700; }
+    .kpi-caption[data-status="warn"] { color: var(--warning-text); font-weight: 700; }
+    .kpi-caption[data-status="alert"] { color: var(--error); font-weight: 700; }
+
+    /* Chips */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: var(--label-size);
+      padding: 2px 10px;
+      border-radius: var(--rounded-full);
+      background: var(--positive-bg);
+      color: var(--secondary);
+      white-space: nowrap;
+    }
+    .chip[data-status="info"] { background: var(--primary-container); color: var(--on-primary-container); }
+    .chip[data-status="warn"] { background: var(--warning-bg); color: var(--warning-text); }
+    .chip[data-status="alert"] { background: var(--error-bg); color: var(--error); }
+    .chip[data-status="blue"] { background: var(--blue-status-bg); color: var(--blue-status); }
+    .chip[data-status="neutral"] { background: var(--neutral-bg); color: var(--on-surface-variant); }
+
+    /* Callouts */
+    .callout {
+      background: var(--primary-container);
+      border-left: var(--status-bar-width) solid var(--primary);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      color: var(--on-primary-container);
+      font-size: 0.94rem;
+    }
+    .callout[data-status="warn"] {
+      background: var(--warning-bg);
+      border-left-color: var(--warning);
+      color: var(--warning-text);
+    }
+    .callout[data-status="alert"] {
+      background: var(--error-bg);
+      border-left-color: var(--error);
+      color: var(--error);
+    }
+    .callout[data-status="ok"] {
+      background: var(--positive-bg);
+      border-left-color: var(--tertiary);
+      color: var(--secondary);
+    }
+
+    /* Segmented toggle */
+    .segmented {
+      display: inline-flex;
+      background: var(--surface-container-low);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: 3px;
+      gap: 3px;
+    }
+    .seg-btn {
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+      background: transparent;
+      color: var(--on-surface-variant);
+      padding: 6px 14px;
+      min-height: 38px;
+      border-radius: var(--rounded-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out);
+    }
+    .seg-btn[aria-pressed="true"] {
+      background: var(--background);
+      color: var(--primary);
+      box-shadow: var(--card-lift);
+    }
+
+    /* Tables */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      background: var(--background);
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    table.data-table thead th {
+      background: var(--surface-container-low);
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: var(--label-size);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--on-surface-variant);
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--outline-variant);
+      white-space: nowrap;
+    }
+    table.data-table tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--outline-variant);
+      vertical-align: middle;
+    }
+    table.data-table tbody tr:last-child td { border-bottom: none; }
+    table.data-table tbody tr:hover { background-color: var(--surface-container-low); }
+
+    /* Heatmap FTE */
+    .heatmap-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+      gap: var(--space-md);
+      background: var(--surface-container-low);
+      padding: var(--space-md);
+      border-radius: var(--rounded);
+      border: 1px solid var(--outline-variant);
+      align-items: end;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .range-input {
+      flex: 1;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+    .num-compact {
+      width: 78px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      padding: 0.35rem 0.5rem;
+      min-height: 36px;
+    }
+
+    .heatmap-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-md);
+      align-items: center;
+      font-size: 0.85rem;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+    .swatch-red { background: var(--error); }
+    .swatch-yellow { background: var(--warning); }
+    .swatch-green { background: var(--tertiary); }
+    .swatch-blue { background: var(--blue-status); }
+
+    .hm-cell {
+      border-radius: var(--rounded-sm);
+      padding: 8px 10px;
+      text-align: center;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      width: 100%;
+      font-family: var(--font-body);
+    }
+    .hm-cell:hover { transform: translateY(-1px); box-shadow: var(--card-lift); }
+    .hm-cell[data-tier="red"] { background: var(--error-bg); color: var(--error); border-color: var(--error); }
+    .hm-cell[data-tier="yellow"] { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning); }
+    .hm-cell[data-tier="green"] { background: var(--positive-bg); color: var(--secondary); border-color: var(--tertiary); }
+    .hm-cell[data-tier="blue"] { background: var(--blue-status-bg); color: var(--blue-status); border-color: var(--blue-status); }
+    .hm-pct {
+      font-family: var(--font-headline);
+      font-weight: 800;
+      font-size: 0.95rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .hm-sub {
+      font-size: 0.74rem;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.92;
+    }
+
+    /* Two-column dashboard grid */
+    .dash-split {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(440px, 100%), 1fr));
+      gap: var(--space-lg);
+    }
+    .chart-box {
+      position: relative;
+      min-height: 280px;
+      width: 100%;
+    }
+
+    /* FIFO bar */
+    .fifo-bar {
+      display: flex;
+      height: 12px;
+      border-radius: var(--rounded-full);
+      overflow: hidden;
+      background: var(--neutral-bg);
+      min-width: 110px;
+    }
+    .fifo-old { background: var(--warning); }
+    .fifo-curr { background: var(--primary); }
+
+    /* Roster H24 Grid */
+    .roster-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+      background: var(--surface-container-low);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+    }
+    .roster-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .roster-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      background: var(--background);
+    }
+    table.roster-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+    table.roster-table th, table.roster-table td {
+      border-bottom: 1px solid var(--outline-variant);
+      border-right: 1px solid var(--outline-variant);
+      padding: 4px;
+      text-align: center;
+    }
+    table.roster-table thead th {
+      background: var(--surface-container-low);
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: 0.74rem;
+      color: var(--on-surface-variant);
+      padding: 8px 4px;
+      min-width: 40px;
+    }
+    table.roster-table th.sticky-col,
+    table.roster-table td.sticky-col {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--background);
+      text-align: left;
+      padding: 6px 12px;
+      min-width: 215px;
+      max-width: 235px;
+      border-right: 2px solid var(--outline-variant);
+    }
+    table.roster-table thead th.sticky-col {
+      background: var(--surface-container-low);
+      z-index: 3;
+    }
+    tr.qual-group-row td {
+      background: var(--surface-container);
+      color: var(--on-primary-container);
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      text-align: left !important;
+      padding: 6px 12px !important;
+    }
+    tr.skillmix-row td {
+      background: var(--surface-container-low);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 6px 3px;
+    }
+    .weekend-col {
+      background-color: var(--surface-container-low);
+    }
+    .shift-btn {
+      width: 34px;
+      height: 32px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      transition: transform var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .shift-btn:hover:not(:disabled) {
+      transform: scale(1.06);
+      box-shadow: var(--card-lift);
+    }
+    .shift-btn:disabled { cursor: default; }
+    .shift-btn[data-code="M"] { background: var(--blue-status-bg); color: var(--blue-status); }
+    .shift-btn[data-code="P"] { background: var(--primary-container); color: var(--on-primary-container); }
+    .shift-btn[data-code="N"] { background: var(--on-surface); color: var(--background); }
+    .shift-btn[data-code="S"] { background: var(--neutral-bg); color: var(--on-surface-variant); }
+    .shift-btn[data-code="R"] { background: var(--background); color: var(--outline); border-color: var(--outline-variant); }
+    .shift-btn[data-code="F"] { background: var(--positive-bg); color: var(--secondary); }
+    .shift-btn[data-code="104"] { background: var(--warning-bg); color: var(--warning-text); }
+    .shift-btn[data-code="PD"] { background: var(--surface-container-high); color: var(--on-surface); border-style: dashed; border-color: var(--primary); }
+    .shift-btn[data-code="MAL"] { background: var(--error-bg); color: var(--error); }
+
+    .shift-btn.is-modified {
+      box-shadow: inset 0 0 0 2px var(--warning);
+    }
+    .shift-btn.has-violation {
+      box-shadow: inset 0 0 0 2px var(--error);
+    }
+    .viol-dot {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 9px;
+      height: 9px;
+      border-radius: var(--rounded-full);
+      background: var(--error);
+      border: 1.5px solid var(--background);
+    }
+
+    .shift-palette {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--surface-container-low);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+    }
+    .palette-chip {
+      border: 1px solid var(--outline-variant);
+      background: var(--background);
+      border-radius: var(--rounded-sm);
+      padding: 4px 10px;
+      min-height: 36px;
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--on-surface);
+    }
+    .palette-chip[aria-pressed="true"] {
+      border-color: var(--primary);
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .validator-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+    .viol-list {
+      display: grid;
+      gap: var(--space-sm);
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .viol-item {
+      background: var(--background);
+      border: 1px solid var(--outline-variant);
+      border-left: 4px solid var(--error);
+      border-radius: var(--rounded-sm);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 0.86rem;
+    }
+    .viol-item[data-severity="warn"] { border-left-color: var(--warning); }
+
+    /* Push notifications preview drawer */
+    .push-drawer {
+      background: var(--surface-container-low);
+      border: 1px solid var(--primary);
+      border-left: 4px solid var(--primary);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: grid;
+      gap: var(--space-md);
+    }
+    .push-list {
+      display: grid;
+      gap: var(--space-sm);
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .push-row {
+      background: var(--background);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    /* Competencies & Performance Split */
+    .eval-split {
+      display: grid;
+      grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+      gap: var(--space-lg);
+      align-items: start;
+    }
+    .staff-list {
+      display: grid;
+      gap: var(--space-xs);
+      max-height: 540px;
+      overflow-y: auto;
+    }
+    .staff-pick {
+      width: 100%;
+      text-align: left;
+      background: var(--background);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-sm);
+      font-family: var(--font-body);
+      color: var(--on-surface);
+      min-height: 52px;
+      transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    }
+    .staff-pick:hover { background: var(--surface-container-low); }
+    .staff-pick[aria-current="true"] {
+      background: var(--primary-container);
+      border-color: var(--primary);
+      border-left: 4px solid var(--primary);
+    }
+
+    .eval-item-row {
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-md);
+      align-items: center;
+    }
+    .rating-group {
+      display: inline-flex;
+      gap: 4px;
+    }
+    .rate-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--rounded-sm);
+      border: 1px solid var(--outline);
+      background: var(--background);
+      font-family: var(--font-label);
+      font-weight: 700;
+      color: var(--on-surface);
+      cursor: pointer;
+    }
+    .rate-btn[aria-pressed="true"] {
+      background: var(--primary);
+      color: var(--on-primary);
+      border-color: var(--primary);
+    }
+
+    /* Container queries & Responsive */
+    .card-wrapper { container-type: inline-size; }
+    @container (max-width: 520px) {
+      .eval-item-row { grid-template-columns: 1fr; }
+    }
+
+    .hidden-view { display: none !important; }
+
+    .site-footer {
+      border-top: 1px solid var(--outline-variant);
+      padding: var(--space-md) 0 var(--space-xl);
+      color: var(--on-surface-variant);
+      font-size: 0.84rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    @media (max-width: 980px) {
+      .hierarchy-bar {
+        grid-template-columns: 1fr 1fr;
+      }
+      .eval-split {
+        grid-template-columns: 1fr;
+      }
+    }
+    @media (max-width: 640px) {
+      .page-grid {
+        padding: var(--space-sm);
+        gap: var(--space-md);
+      }
+      .hierarchy-bar {
+        grid-template-columns: 1fr;
+      }
+      .panel { padding: var(--space-md); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <div class="page-grid">
+
+      <!-- HEADER + NAVIGAZIONE GERARCHICA ORGANIZZATIVA -->
+      <header class="app-header">
+        <div class="header-top">
+          <div>
+            <span class="kicker">Sistema Integrato Sanità H24 · D.Lgs. 66/2003 &amp; CCNL Sanità</span>
+            <h1 class="title">Gestione Turni e Human Capital Management</h1>
+            <p class="lede">Pianificazione assistenziale basata su fabbisogno FTE, validazione normativa automatica, monitoraggio assenze, tutele e sviluppo competenze.</p>
+          </div>
+          <div class="header-actions">
+            <span class="chip" data-status="info" id="clock-badge">
+              <i data-lucide="calendar" aria-hidden="true" style="width:14px;height:14px;"></i>
+              16 Novembre 2026 · Scadenza turni Dicembre: 20 Nov
+            </span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="exportCsvReport()">
+              <i data-lucide="download" aria-hidden="true" style="width:15px;height:15px;"></i>
+              Esporta CSV
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="reset-state-btn" onclick="handleResetState(this)">
+              <i data-lucide="rotate-ccw" aria-hidden="true" style="width:15px;height:15px;"></i>
+              Ripristina dati
+            </button>
+          </div>
+        </div>
+
+        <!-- Filtro Gerarchico a Cascata: Dipartimento -> Piattaforma -> Reparto + Coordinatore -->
+        <section aria-label="Navigazione Gerarchica Organizzativa" class="hierarchy-bar">
+          <div class="field-group">
+            <label for="sel-dipartimento" class="field-label">1. Dipartimento</label>
+            <select id="sel-dipartimento" class="select-control" onchange="onDipartimentoChange(this.value)"></select>
+          </div>
+          <div class="field-group">
+            <label for="sel-piattaforma" class="field-label">2. Piattaforma / Comparto</label>
+            <select id="sel-piattaforma" class="select-control" onchange="onPiattaformaChange(this.value)"></select>
+          </div>
+          <div class="field-group">
+            <label for="sel-reparto" class="field-label">3. Reparto / U.O.C.</label>
+            <select id="sel-reparto" class="select-control" onchange="onRepartoChange(this.value)"></select>
+          </div>
+          <div class="coordinator-card" id="coord-summary">
+            <span class="kicker">Responsabile &amp; Coordinamento</span>
+            <span class="coord-names" id="coord-names">—</span>
+            <span class="coord-meta" id="coord-meta">—</span>
+          </div>
+        </section>
+
+        <!-- Navigazione Schermate -->
+        <nav class="main-nav" aria-label="Sezioni applicative">
+          <button type="button" class="nav-tab" id="tab-dashboard" aria-selected="true" onclick="switchView('dashboard')">
+            <i data-lucide="layout-dashboard" aria-hidden="true" style="width:17px;height:17px;"></i>
+            1. Dashboard KPI &amp; Cruscotti
+          </button>
+          <button type="button" class="nav-tab" id="tab-roster" aria-selected="false" onclick="switchView('roster')">
+            <i data-lucide="calendar-clock" aria-hidden="true" style="width:17px;height:17px;"></i>
+            2. Tabellone Turni H24
+            <span class="chip" data-status="warn" id="tab-draft-badge">Bozza</span>
+          </button>
+          <button type="button" class="nav-tab" id="tab-hcm" aria-selected="false" onclick="switchView('hcm')">
+            <i data-lucide="award" aria-hidden="true" style="width:17px;height:17px;"></i>
+            3. Competenze &amp; Performance
+            <span class="chip" data-status="alert" id="tab-cert-badge">0 avvisi</span>
+          </button>
+        </nav>
+      </header>
+
+      <!-- INLINE FEEDBACK BANNER -->
+      <div id="global-toast" class="callout hidden-view" role="status" aria-live="polite"></div>
+
+      <!-- ========================================================= -->
+      <!-- VIEW 1: DASHBOARD KPI E CRUSCOTTI ANALITICI               -->
+      <!-- ========================================================= -->
+      <main id="view-dashboard" style="display:grid; gap:var(--space-lg);">
+
+        <!-- Top 4 KPI Cards -->
+        <section class="kpi-grid" aria-label="Indicatori Chiave di Reparto">
+          <article class="status-card" id="kpi-card-fte" data-status="ok">
+            <span class="kicker">Copertura Fabbisogno FTE</span>
+            <div class="kpi-value tabular" id="kpi-fte-val">—</div>
+            <div class="kpi-caption" id="kpi-fte-cap">—</div>
+          </article>
+          <article class="status-card" id="kpi-card-abs" data-status="warn">
+            <span class="kicker">Micro-Assenze (1–3 gg)</span>
+            <div class="kpi-value tabular" id="kpi-abs-val">—</div>
+            <div class="kpi-caption" id="kpi-abs-cap">—</div>
+          </article>
+          <article class="status-card" id="kpi-card-ferie" data-status="ok">
+            <span class="kicker">Ferie Estive 15gg &amp; FIFO</span>
+            <div class="kpi-value tabular" id="kpi-ferie-val">—</div>
+            <div class="kpi-caption" id="kpi-ferie-cap">—</div>
+          </article>
+          <article class="status-card" id="kpi-card-tutele" data-status="info">
+            <span class="kicker">Tutele &amp; Limitazioni Attive</span>
+            <div class="kpi-value tabular" id="kpi-tutele-val">—</div>
+            <div class="kpi-caption" id="kpi-tutele-cap">—</div>
+          </article>
+        </section>
+
+        <!-- CRUSCOTTO 1: HEATMAP FABBISOGNO FTE -->
+        <section class="panel" aria-labelledby="hm-heading">
+          <div class="panel-header">
+            <div>
+              <span class="kicker">Cruscotto Assistenziale · Calcolo Dinamico FTE</span>
+              <h2 class="section-title" id="hm-heading">Heatmap Fabbisogno FTE (Posti Letto e Minuti Assistenziali)</h2>
+              <p class="lede">Confronto tra dotazione effettiva disponibile (al netto di assenze, ferie e limitazioni) e fabbisogno derivato da posti letto occupati e minutaggio assistenziale per paziente nelle 24 ore.</p>
+            </div>
+            <div class="segmented" role="group" aria-label="Modalità vista Heatmap">
+              <button type="button" class="seg-btn" id="hm-mode-aziendale" aria-pressed="true" onclick="setHeatmapMode('aziendale')">Per Reparti &amp; Fasce</button>
+              <button type="button" class="seg-btn" id="hm-mode-settimana" aria-pressed="false" onclick="setHeatmapMode('settimana')">Dettaglio 7gg Reparto</button>
+            </div>
+          </div>
+
+          <div class="heatmap-controls">
+            <div class="field-group">
+              <label for="slider-occ" class="field-label">Occupazione Posti Letto (%)</label>
+              <div class="slider-row">
+                <input type="range" id="slider-occ" class="range-input" min="60" max="110" step="1" oninput="syncOccFromSlider(this.value)">
+                <input type="number" id="input-occ" class="input-control num-compact" min="60" max="110" step="1" oninput="syncOccFromNumber(this.value)" aria-label="Occupazione percentuale">
+              </div>
+            </div>
+            <div class="field-group">
+              <label for="slider-min" class="field-label">Minuti Assistenziali / pz / 24h</label>
+              <div class="slider-row">
+                <input type="range" id="slider-min" class="range-input" min="140" max="600" step="5" oninput="syncMinFromSlider(this.value)">
+                <input type="number" id="input-min" class="input-control num-compact" min="140" max="600" step="5" oninput="syncMinFromNumber(this.value)" aria-label="Minuti assistenziali">
+              </div>
+            </div>
+            <div class="field-group">
+              <span class="field-label">Fabbisogno Calcolato Unità Selezionata</span>
+              <div id="fte-formula-readout" class="coord-names tabular">—</div>
+            </div>
+          </div>
+
+          <div class="heatmap-legend" aria-label="Legenda codici colore FTE">
+            <span class="legend-item"><span class="swatch swatch-red"></span><strong>Rosso (&lt; 85%)</strong> Sottorganico critico</span>
+            <span class="legend-item"><span class="swatch swatch-yellow"></span><strong>Giallo (85–94%)</strong> Fascia di attenzione</span>
+            <span class="legend-item"><span class="swatch swatch-green"></span><strong>Verde (95–105%)</strong> Copertura ottimale</span>
+            <span class="legend-item"><span class="swatch swatch-blue"></span><strong>Blu (&gt; 105%)</strong> Eccedenza riallocabile</span>
+          </div>
+
+          <div class="table-wrap" id="heatmap-container"></div>
+          <div id="heatmap-drill" class="callout hidden-view"></div>
+        </section>
+
+        <!-- CRUSCOTTO 2 + 3: MICRO-ASSENZE & FERIE QUADRIMESTRALI FIFO -->
+        <div class="dash-split">
+          <!-- Micro-Assenze 1-3 giorni -->
+          <section class="panel" aria-labelledby="abs-heading">
+            <div class="panel-header">
+              <div>
+                <span class="kicker">Monitoraggio Assenteismo Breve</span>
+                <h2 class="section-title" id="abs-heading">Cruscotto Micro-Assenze (1–3 giorni)</h2>
+                <p class="lede">Tasso di frequenza episodi brevi negli ultimi 90 giorni e correlazione con compressione dei riposi.</p>
+              </div>
+              <div class="field-group">
+                <label for="sel-abs-filter" class="field-label">Soglia Frequenza</label>
+                <select id="sel-abs-filter" class="select-control" onchange="renderDashboard()">
+                  <option value="all">Tutti gli operatori</option>
+                  <option value="high">Solo alta frequenza (≥ 3 episodi)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="chart-box" style="min-height: 260px;">
+              <canvas id="chart-micro-abs" aria-label="Andamento micro-assenze 1-3 giorni"></canvas>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Operatore</th>
+                    <th>Qualifica</th>
+                    <th>Episodi 1–3gg</th>
+                    <th>Tasso Freq.</th>
+                    <th>Indice Bradford</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-micro-abs"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Ferie Quadrimestrali & FIFO -->
+          <section class="panel" aria-labelledby="ferie-heading">
+            <div class="panel-header">
+              <div>
+                <span class="kicker">Ciclo Febbraio 2026 – Gennaio 2027 · Art. 10 D.Lgs. 66/2003</span>
+                <h2 class="section-title" id="ferie-heading">Ferie Quadrimestrali &amp; Saldi FIFO</h2>
+                <p class="lede">Verifica vincolo minimo 15 giorni continuativi estivi (Giu–Set) e smaltimento residui anno precedente (FIFO).</p>
+              </div>
+              <div class="field-group">
+                <label for="sel-ferie-filter" class="field-label">Filtro Conformità</label>
+                <select id="sel-ferie-filter" class="select-control" onchange="renderDashboard()">
+                  <option value="all">Tutti</option>
+                  <option value="alert">Non conformi (&lt;15gg estivi o FIFO critico)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="chart-box" style="min-height: 220px;">
+              <canvas id="chart-ferie-quad" aria-label="Distribuzione ferie nei tre quadrimestri"></canvas>
+            </div>
+
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Operatore</th>
+                    <th>Q1 / Q2 / Q3 (gg)</th>
+                    <th>Max Estivo</th>
+                    <th>Saldo FIFO (Prec / Corr)</th>
+                    <th>Azione</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-ferie"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <!-- CRUSCOTTO 4: TUTELE L.104, PART-TIME, ESONERI NOTTURNI, INIDONEITÀ -->
+        <section class="panel" aria-labelledby="tutele-heading">
+          <div class="panel-header">
+            <div>
+              <span class="kicker">Conformità Giuridica e Sorveglianza Sanitaria · Art. 11, 14, 15 D.Lgs. 66/2003</span>
+              <h2 class="section-title" id="tutele-heading">Cruscotto Tutele (Legge 104, Part-Time, Esoneri Notturni e Inidoneità Mediche)</h2>
+              <p class="lede">Mappatura delle limitazioni contrattuali e medico-legali che vincolano la generazione automatica e manuale della matrice H24.</p>
+            </div>
+            <div class="roster-group" role="group" aria-label="Filtro categoria tutele">
+              <button type="button" class="palette-chip" data-tutela="all" aria-pressed="true" onclick="setTutelaFilter('all')">Tutte</button>
+              <button type="button" class="palette-chip" data-tutela="L104" aria-pressed="false" onclick="setTutelaFilter('L104')">Legge 104</button>
+              <button type="button" class="palette-chip" data-tutela="PT" aria-pressed="false" onclick="setTutelaFilter('PT')">Part-Time</button>
+              <button type="button" class="palette-chip" data-tutela="ESONERO_N" aria-pressed="false" onclick="setTutelaFilter('ESONERO_N')">Esonero Notturno</button>
+              <button type="button" class="palette-chip" data-tutela="INIDONEO" aria-pressed="false" onclick="setTutelaFilter('INIDONEO')">Inidoneità Medica</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Operatore</th>
+                  <th>Qualifica &amp; Reparto</th>
+                  <th>Tipologia Tutela</th>
+                  <th>Riferimento Normativo</th>
+                  <th>Impatto Pianificazione Turni</th>
+                  <th>Verifica / Scadenza</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-tutele"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <!-- ========================================================= -->
+      <!-- VIEW 2: TABELLONE TURNI H24 INTERATTIVO                   -->
+      <!-- ========================================================= -->
+      <main id="view-roster" class="hidden-view" style="display:grid; gap:var(--space-lg);">
+        <section class="panel" aria-labelledby="roster-heading">
+          <div class="panel-header">
+            <div>
+              <span class="kicker">Programmazione Novembre 2026 · Validatore CCNL &amp; D.Lgs. 66/2003</span>
+              <h2 class="section-title" id="roster-heading">Tabellone Turni H24 Interattivo</h2>
+              <p class="lede">Pianifica i turni in Bozza per qualifica, verifica in tempo reale riposo 11h, soglia 48h e Skill Mix obbligatorio, poi pubblica con notifiche push mirate ai soli operatori impattati.</p>
+            </div>
+            <div class="roster-group">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="applyFifthShiftCycle()" id="btn-auto-cycle">
+                <i data-lucide="refresh-cw" aria-hidden="true" style="width:15px;height:15px;"></i>
+                Applica Ciclo in Quinta
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-open-publish" onclick="togglePushDrawer()">
+                <i data-lucide="send" aria-hidden="true" style="width:16px;height:16px;"></i>
+                Pubblica Modifiche (<span id="pending-diff-count">0</span>)
+              </button>
+            </div>
+          </div>
+
+          <!-- Toolbar stato Bozza vs Pubblicato, Settimana vs Mese, Qualifica -->
+          <div class="roster-toolbar">
+            <div class="roster-group">
+              <div>
+                <span class="field-label" style="display:block;margin-bottom:4px;">Stato Tabellone</span>
+                <div class="segmented" role="group" aria-label="Stato tabellone">
+                  <button type="button" class="seg-btn" id="state-btn-draft" aria-pressed="true" onclick="setRosterMode('draft')">
+                    <i data-lucide="edit-3" aria-hidden="true" style="width:14px;height:14px;"></i>
+                    Bozza (Modificabile)
+                  </button>
+                  <button type="button" class="seg-btn" id="state-btn-pub" aria-pressed="false" onclick="setRosterMode('published')">
+                    <i data-lucide="lock" aria-hidden="true" style="width:14px;height:14px;"></i>
+                    Pubblicato (Ufficiale)
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span class="field-label" style="display:block;margin-bottom:4px;">Orizzonte Griglia</span>
+                <div class="segmented" role="group" aria-label="Orizzonte temporale">
+                  <button type="button" class="seg-btn" id="span-btn-week" aria-pressed="true" onclick="setRosterSpan('week')">Settimanale (16–22 Nov)</button>
+                  <button type="button" class="seg-btn" id="span-btn-month" aria-pressed="false" onclick="setRosterSpan('month')">Mensile (1–30 Nov)</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="roster-group">
+              <div class="field-group">
+                <label for="sel-qualifica" class="field-label">Filtra Qualifica</label>
+                <select id="sel-qualifica" class="select-control" onchange="renderRoster()">
+                  <option value="all">Tutte le Qualifiche</option>
+                  <option value="Medico Dirigente">Medici Dirigenti</option>
+                  <option value="Infermiere">Infermieri</option>
+                  <option value="Ostetrica">Ostetriche</option>
+                  <option value="OSS">OSS</option>
+                </select>
+              </div>
+              <div class="field-group" id="week-picker-wrap">
+                <label for="sel-week" class="field-label">Settimana</label>
+                <select id="sel-week" class="select-control" onchange="renderRoster()">
+                  <option value="0">Sett. 1 (1–7 Nov)</option>
+                  <option value="1">Sett. 2 (8–14 Nov)</option>
+                  <option value="2" selected>Sett. 3 (15–21 Nov · Corrente)</option>
+                  <option value="3">Sett. 4 (22–28 Nov)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Palette pennello turno rapido (attiva in Bozza) -->
+          <div class="shift-palette" id="shift-palette-bar">
+            <span class="kicker" style="margin-right:4px;">Codice da assegnare al clic:</span>
+            <button type="button" class="palette-chip" data-brush="CYCLE" aria-pressed="true" onclick="setBrush('CYCLE')">Cicla M → P → N → S → R</button>
+            <button type="button" class="palette-chip" data-brush="M" aria-pressed="false" onclick="setBrush('M')"><strong>M</strong> Mattina 07–14</button>
+            <button type="button" class="palette-chip" data-brush="P" aria-pressed="false" onclick="setBrush('P')"><strong>P</strong> Pom. 14–21</button>
+            <button type="button" class="palette-chip" data-brush="N" aria-pressed="false" onclick="setBrush('N')"><strong>N</strong> Notte 21–07</button>
+            <button type="button" class="palette-chip" data-brush="S" aria-pressed="false" onclick="setBrush('S')"><strong>S</strong> Smonto</button>
+            <button type="button" class="palette-chip" data-brush="R" aria-pressed="false" onclick="setBrush('R')"><strong>R</strong> Riposo</button>
+            <button type="button" class="palette-chip" data-brush="F" aria-pressed="false" onclick="setBrush('F')"><strong>F</strong> Ferie</button>
+            <button type="button" class="palette-chip" data-brush="PD" aria-pressed="false" onclick="setBrush('PD')"><strong>PD</strong> Pronta Disp.</button>
+            <button type="button" class="palette-chip" data-brush="104" aria-pressed="false" onclick="setBrush('104')"><strong>104</strong> Perm. L.104</button>
+          </div>
+
+          <!-- Anteprima Notifiche Push Mirate (inline drawer) -->
+          <div id="push-drawer" class="push-drawer hidden-view" role="region" aria-label="Invio Notifiche Push Mirate">
+            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:var(--space-sm);">
+              <div>
+                <span class="kicker">Anteprima Delta Bozza → Pubblicato</span>
+                <h3 class="card-title">Notifiche Push Mirate ai Soli Dipendenti Con Turni Modificati</h3>
+              </div>
+              <div class="roster-group">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="togglePushDrawer(false)">Annulla</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-confirm-publish" onclick="confirmPublishAndPush()">
+                  <i data-lucide="bell-ring" aria-hidden="true" style="width:15px;height:15px;"></i>
+                  Conferma Pubblicazione e Invia Push
+                </button>
+              </div>
+            </div>
+            <div id="push-preview-list" class="push-list"></div>
+          </div>
+
+          <!-- Griglia Turni H24 -->
+          <div class="roster-wrap" id="roster-grid-wrap"></div>
+
+          <!-- Validatore Vincoli in Tempo Reale -->
+          <section aria-label="Validatore Vincoli Normativi e Skill Mix" style="display:grid; gap:var(--space-md);">
+            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:var(--space-sm);">
+              <h3 class="card-title">Validatore Automatico Vincoli (11h Riposo · 48h Max · Esoneri · Skill Mix H24)</h3>
+              <span id="validator-summary-chip" class="chip" data-status="ok">Verifica in corso…</span>
+            </div>
+
+            <div class="validator-grid">
+              <div class="status-card" id="val-card-rest">
+                <span class="kicker">Riposo 11h &amp; Esoneri Notturni</span>
+                <div class="kpi-value tabular" id="val-rest-count">0</div>
+                <div class="kpi-caption">Violazioni Art. 7 / Art. 11-15 rilevate</div>
+              </div>
+              <div class="status-card" id="val-card-48h">
+                <span class="kicker">Limite 48h Settimanali Max</span>
+                <div class="kpi-value tabular" id="val-48h-count">0</div>
+                <div class="kpi-caption">Superamenti soglia Art. 4 D.Lgs. 66/2003</div>
+              </div>
+              <div class="status-card" id="val-card-skill">
+                <span class="kicker">Copertura Skill Mix Obbligatorio</span>
+                <div class="kpi-value tabular" id="val-skill-count">0</div>
+                <div class="kpi-caption">Turni M/P/N sotto soglia minima qualifica/BLSD</div>
+              </div>
+            </div>
+
+            <div id="validator-list" class="viol-list"></div>
+          </section>
+
+          <!-- Log Ultime Notifiche Push Inviate -->
+          <section aria-label="Storico notifiche push inviate" style="display:grid; gap:var(--space-sm);">
+            <h3 class="card-title">Registro Notifiche Push Inviate</h3>
+            <div id="push-log-list" class="viol-list" style="max-height:160px;"></div>
+          </section>
+        </section>
+      </main>
+
+      <!-- ========================================================= -->
+      <!-- VIEW 3: MAPPATURA COMPETENZE E PERFORMANCE ANNUALI        -->
+      <!-- ========================================================= -->
+      <main id="view-hcm" class="hidden-view" style="display:grid; gap:var(--space-lg);">
+
+        <!-- SEZIONE A: SCHEDA COMPETENZE E SCADENZIARIO BLSD / ACLS -->
+        <section class="panel" aria-labelledby="comp-heading">
+          <div class="panel-header">
+            <div>
+              <span class="kicker">Matrice Abilitazioni Cliniche &amp; Sorveglianza Sanitaria</span>
+              <h2 class="section-title" id="comp-heading">Mappatura Competenze e Avvisi Scadenze BLSD / ACLS</h2>
+              <p class="lede">Monitoraggio scadenze attestati BLSD, ACLS, Triage/PALS e idoneità periodica biennale al lavoro notturno (Art. 14 D.Lgs. 66/2003), integrato nello Skill Mix del tabellone.</p>
+            </div>
+            <div class="roster-group">
+              <div class="field-group">
+                <label for="sel-cert-filter" class="field-label">Stato Attestati</label>
+                <select id="sel-cert-filter" class="select-control" onchange="renderHcm()">
+                  <option value="all">Tutti gli operatori</option>
+                  <option value="alert">Solo scaduti o in scadenza (≤ 60 gg)</option>
+                  <option value="ok">Solo conformi</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-grid" id="cert-kpi-row">
+            <article class="status-card" data-status="alert">
+              <span class="kicker">Attestati Scaduti</span>
+              <div class="kpi-value tabular" id="cert-expired-val">0</div>
+              <div class="kpi-caption" data-status="alert">Richiedono rinnovo immediato</div>
+            </article>
+            <article class="status-card" data-status="warn">
+              <span class="kicker">In Scadenza entro 60 gg</span>
+              <div class="kpi-value tabular" id="cert-soon-val">0</div>
+              <div class="kpi-caption" data-status="warn">Pianificare sessione retraining</div>
+            </article>
+            <article class="status-card" data-status="ok">
+              <span class="kicker">Copertura BLSD/ACLS Valida</span>
+              <div class="kpi-value tabular" id="cert-ok-val">0%</div>
+              <div class="kpi-caption" data-status="ok">Idoneità piena per turni critici H24</div>
+            </article>
+          </div>
+
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Operatore</th>
+                  <th>Qualifica</th>
+                  <th>BLSD</th>
+                  <th>ACLS</th>
+                  <th>Abilitazioni Specialistiche</th>
+                  <th>Visita Notturna (Art. 14)</th>
+                  <th>Azione Rapida</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-competenze"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- SEZIONE B: SCHEDA VALUTAZIONE ANNUALE DIPENDENTE -->
+        <section class="panel card-wrapper" aria-labelledby="eval-heading">
+          <div class="panel-header">
+            <div>
+              <span class="kicker">Ciclo Valutazione Performance 2026 · Items Aziendali Ponderati</span>
+              <h2 class="section-title" id="eval-heading">Scheda di Valutazione Annuale Dipendente</h2>
+              <p class="lede">Seleziona un operatore dell'unità organizzativa per compilare, aggiornare o confermare la valutazione annuale secondo gli items aziendali.</p>
+            </div>
+            <span class="chip" id="eval-status-badge" data-status="info">Seleziona operatore</span>
+          </div>
+
+          <div class="eval-split">
+            <div>
+              <span class="field-label" style="display:block;margin-bottom:var(--space-sm);">Personale del Reparto Selezionato</span>
+              <div class="staff-list" id="eval-staff-list"></div>
+            </div>
+
+            <div class="panel" style="background:var(--surface-container-low);" id="eval-form-panel">
+              <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:var(--space-md);">
+                <div>
+                  <span class="kicker" id="eval-emp-role">—</span>
+                  <h3 class="section-title" id="eval-emp-name">—</h3>
+                </div>
+                <div class="status-card" style="min-width:180px; padding:var(--space-sm) var(--space-md);" id="eval-score-card" data-status="ok">
+                  <span class="kicker">Punteggio Ponderato</span>
+                  <div class="kpi-value tabular" id="eval-total-score">0.00 / 5</div>
+                  <div class="kpi-caption" id="eval-tier-label">—</div>
+                </div>
+              </div>
+
+              <div id="eval-items-container" style="display:grid; gap:var(--space-sm);"></div>
+
+              <div class="field-group">
+                <label for="eval-notes" class="field-label">Note del Valutatore e Obiettivi Formativi 2027</label>
+                <textarea id="eval-notes" class="textarea-control" oninput="onEvalNotesInput(this.value)"></textarea>
+              </div>
+
+              <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:var(--space-sm);">
+                <span class="coord-meta" id="eval-last-saved">Nessuna modifica non salvata</span>
+                <div class="roster-group">
+                  <button type="button" class="btn btn-secondary" onclick="saveEvaluation('bozza')">Salva in Bozza</button>
+                  <button type="button" class="btn btn-primary" onclick="saveEvaluation('confermata')">Conferma Valutazione Annuale</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- FOOTER FONTI IN TESTO SEMPLICE -->
+      <footer class="site-footer">
+        <span>Riferimenti normativi e metodologici: D.Lgs. 8 aprile 2003 n. 66 (artt. 4, 7, 8, 9, 10, 11, 13, 14, 15, 17), Legge 161/2014, CCNL Sanità Comparto 2019–2021, CoAS Medici, StaffRoster e Randstad Research.</span>
+        <span>Dati operativi dimostrativi · Data di riferimento: 16 Novembre 2026</span>
+      </footer>
+    </div>
+  </div>
+
+  <api-shim></api-shim>
+
+  <script>
+    // =========================================================================
+    // 1. ARCHITETTURA ORGANIZZATIVA & DATASET INIZIALE (D.Lgs. 66/2003 & CCNL)
+    // =========================================================================
+    const REFERENCE_DATE = `2026-11-16`;
+    const DAYS_IN_MONTH = 30; // Novembre 2026
+    const DAY_NAMES = [`Dom`, `Lun`, `Mar`, `Mer`, `Gio`, `Ven`, `Sab`]; // 1 Nov 2026 = Domenica (0)
+
+    const ORG_TREE = [
+      {
+        id: `dip-em`,
+        nome: `Dipartimento Emergenza-Urgenza`,
+        piattaforme: [
+          {
+            id: `piatt-ps`,
+            nome: `Piattaforma Emergenza & Accettazione`,
+            reparti: [
+              {
+                id: `PS-OBI`,
+                nome: `Pronto Soccorso & OBI`,
+                direttore: `Dott. Roberto Ferri`,
+                coordinatore: `Dott.ssa Chiara Conti (Coord. Inf.)`,
+                postiLetto: 24,
+                occupazione: 96,
+                minutiAss: 380,
+                fteEffettivi: 27.4,
+                skillMix: {
+                  M: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 2, acls: 1 },
+                  P: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 2, acls: 1 },
+                  N: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 1 }
+                }
+              }
+            ]
+          },
+          {
+            id: `piatt-ti`,
+            nome: `Piattaforma Area Critica Intensiva`,
+            reparti: [
+              {
+                id: `TI-RIA`,
+                nome: `Terapia Intensiva & Rianimazione`,
+                direttore: `Dott.ssa Elena Visconti`,
+                coordinatore: `Inf. Coord. Marco Bellini`,
+                postiLetto: 14,
+                occupazione: 93,
+                minutiAss: 540,
+                fteEffettivi: 25.8,
+                skillMix: {
+                  M: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 2, acls: 1 },
+                  P: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 2, acls: 1 },
+                  N: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 2, acls: 1 }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: `dip-med`,
+        nome: `Dipartimento Medico Polispecialistico`,
+        piattaforme: [
+          {
+            id: `piatt-med-acuti`,
+            nome: `Piattaforma Degenza Medica Acuti`,
+            reparti: [
+              {
+                id: `MED-A`,
+                nome: `Medicina Interna A`,
+                direttore: `Dott. Alberto Marchetti`,
+                coordinatore: `Inf. Coord. Giulia Rinaldi`,
+                postiLetto: 32,
+                occupazione: 94,
+                minutiAss: 215,
+                fteEffettivi: 23.6,
+                skillMix: {
+                  M: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 1, acls: 0 },
+                  P: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 0 },
+                  N: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 0 }
+                }
+              },
+              {
+                id: `CARD-UTIC`,
+                nome: `Cardiologia & UTIC`,
+                direttore: `Dott. Lorenzo De Luca`,
+                coordinatore: `Inf. Coord. Davide Moretti`,
+                postiLetto: 22,
+                occupazione: 91,
+                minutiAss: 310,
+                fteEffettivi: 24.5,
+                skillMix: {
+                  M: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 2, acls: 1 },
+                  P: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 1 },
+                  N: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 1 }
+                }
+              }
+            ]
+          },
+          {
+            id: `piatt-ger`,
+            nome: `Piattaforma Area Geriatrica`,
+            reparti: [
+              {
+                id: `GER-LD`,
+                nome: `Geriatria & Lungodegenza`,
+                direttore: `Dott.ssa Anna Pellegrini`,
+                coordinatore: `Inf. Coord. Simone Galli`,
+                postiLetto: 30,
+                occupazione: 87,
+                minutiAss: 185,
+                fteEffettivi: 22.8,
+                skillMix: {
+                  M: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 1, acls: 0 },
+                  P: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 0 },
+                  N: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 0 }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        id: `dip-chmi`,
+        nome: `Dipartimento Chirurgico e Materno-Infantile`,
+        piattaforme: [
+          {
+            id: `piatt-chir`,
+            nome: `Piattaforma Degenza Chirurgica`,
+            reparti: [
+              {
+                id: `CHIR-GEN`,
+                nome: `Chirurgia Generale`,
+                direttore: `Dott.ssa Paola Santoro`,
+                coordinatore: `Inf. Coord. Matteo Fontana`,
+                postiLetto: 28,
+                occupazione: 89,
+                minutiAss: 235,
+                fteEffettivi: 22.9,
+                skillMix: {
+                  M: { med: 1, inf: 2, ost: 0, oss: 1, blsd: 1, acls: 0 },
+                  P: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 0 },
+                  N: { med: 1, inf: 1, ost: 0, oss: 1, blsd: 1, acls: 0 }
+                }
+              }
+            ]
+          },
+          {
+            id: `piatt-ost`,
+            nome: `Piattaforma Percorso Nascita`,
+            reparti: [
+              {
+                id: `OST-SP`,
+                nome: `Ostetricia e Sala Parto`,
+                direttore: `Dott.ssa Silvia Lombardi`,
+                coordinatore: `Ost. Coord. Laura Esposito`,
+                postiLetto: 18,
+                occupazione: 83,
+                minutiAss: 290,
+                fteEffettivi: 21.4,
+                skillMix: {
+                  M: { med: 1, inf: 0, ost: 2, oss: 1, blsd: 1, acls: 0 },
+                  P: { med: 1, inf: 0, ost: 1, oss: 1, blsd: 1, acls: 0 },
+                  N: { med: 1, inf: 0, ost: 1, oss: 1, blsd: 1, acls: 0 }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const EVAL_ITEMS = [
+      { id: `qualita`, titolo: `Qualità assistenziale e aderenza ai protocolli clinici`, desc: `Sicurezza del paziente, tracciabilità cartella clinica e gestione terapia.`, peso: 0.25 },
+      { id: `equipe`, titolo: `Lavoro in équipe multidisciplinare e passaggio consegne`, desc: `Collaborazione con medici/OSS e chiarezza nelle consegne H24.`, peso: 0.20 },
+      { id: `urgenza`, titolo: `Gestione dell'urgenza e flessibilità operativa`, desc: `Reattività nelle criticità di reparto e supporto alla continuità assistenziale.`, peso: 0.15 },
+      { id: `ecm`, titolo: `Aggiornamento professionale (ECM, BLSD/ACLS)`, desc: `Mantenimento delle certificazioni obbligatorie e aggiornamento clinico.`, peso: 0.15 },
+      { id: `relazione`, titolo: `Comunicazione con paziente e caregiver`, desc: `Ascolto attivo, empatia e chiarezza informativa al letto del paziente.`, peso: 0.15 },
+      { id: `org`, titolo: `Rispetto procedure, puntualità e corretto uso DPI`, desc: `Osservanza orari di servizio, cambio divisa e sicurezza sul lavoro.`, peso: 0.10 }
+    ];
+
+    const SHIFT_CYCLE_5 = [`M`, `P`, `N`, `S`, `R`];
+    const SHIFT_EDIT_ORDER = [`M`, `P`, `N`, `S`, `R`, `F`, `PD`, `104`];
+    const SHIFT_HOURS = { M: 7, P: 7, N: 10, S: 0, R: 0, F: 0, PD: 0, '104': 0, MAL: 0 };
+
+    function buildInitialStaff() {
+      const unitTemplates = {
+        'PS-OBI': [
+          { n: `Dott. Luca Bertoni`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-06-15`, acls: `2027-04-20`, spec: [`Triage Avanzato`, `Ecografia FAST`], abs: [2, 3], ferie: [4, 16, 4, 16, 3, 22] },
+          { n: `Dott.ssa Martina Greco`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-02-10`, acls: `2026-10-28`, spec: [`Gestione Trauma`], abs: [1, 2], ferie: [5, 15, 5, 15, 0, 21] },
+          { n: `Dott. Andrea Colombo`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-09-01`, acls: `2027-08-12`, spec: [`Ventilazione NIV`], abs: [0, 0], ferie: [3, 18, 4, 18, 2, 20] },
+          { n: `Inf. Federico Rossi`, q: `Infermiere`, h: 36, t: null, blsd: `2027-05-12`, acls: `2026-12-18`, spec: [`Triage Manchester`], abs: [4, 7], ferie: [6, 12, 4, 12, 5, 18] },
+          { n: `Inf. Sara Bianchi`, q: `Infermiere`, h: 24, t: `PT`, blsd: `2027-03-19`, acls: `2027-01-05`, spec: [`Triage Pediatrico`], abs: [1, 1], ferie: [4, 15, 3, 15, 0, 14] },
+          { n: `Inf. Matteo Villa`, q: `Infermiere`, h: 36, t: `L104`, blsd: `2026-11-04`, acls: `2027-03-22`, spec: [`Accessi Vascolari`], abs: [3, 6], ferie: [2, 16, 5, 16, 4, 19] },
+          { n: `Inf. Elena Conti`, q: `Infermiere`, h: 36, t: `ESONERO_N`, blsd: `2027-07-30`, acls: `2027-07-30`, spec: [`OBI & Monitoraggio`], abs: [2, 3], ferie: [5, 15, 4, 15, 1, 17] },
+          { n: `Inf. Alessio Marino`, q: `Infermiere`, h: 36, t: null, blsd: `2027-10-11`, acls: `2027-09-14`, spec: [`Triage Manchester`], abs: [1, 2], ferie: [3, 17, 5, 17, 0, 20] },
+          { n: `OSS Chiara Ferraro`, q: `OSS`, h: 36, t: null, blsd: `2027-01-10`, acls: null, spec: [`Logistica Urgenze`], abs: [3, 5], ferie: [4, 14, 4, 14, 6, 19] },
+          { n: `OSS Paolo Leone`, q: `OSS`, h: 36, t: `INIDONEO`, blsd: `2027-04-02`, acls: null, spec: [`Movimentazione Sicura`], abs: [2, 4], ferie: [6, 15, 3, 15, 2, 16] },
+          { n: `OSS Nadia Giordano`, q: `OSS`, h: 36, t: null, blsd: `2026-12-08`, acls: null, spec: [`Supporto Sala Gessi`], abs: [1, 2], ferie: [4, 16, 4, 16, 0, 18] }
+        ],
+        'TI-RIA': [
+          { n: `Dott.ssa Sofia Rizzo`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-08-19`, acls: `2027-08-19`, spec: [`ECMO Team`, `Broncoscopia`], abs: [1, 1], ferie: [4, 16, 5, 16, 1, 22] },
+          { n: `Dott. Marco Cattaneo`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-04-14`, acls: `2027-02-28`, spec: [`Anestesia & Rian.`], abs: [2, 3], ferie: [3, 15, 6, 15, 3, 20] },
+          { n: `Dott.ssa Giulia Barbieri`, q: `Medico Dirigente`, h: 38, t: `ESONERO_N`, blsd: `2027-11-02`, acls: `2027-06-11`, spec: [`Terapia del Dolore`], abs: [0, 0], ferie: [5, 18, 4, 18, 0, 19] },
+          { n: `Inf. Simone Lombardi`, q: `Infermiere`, h: 36, t: null, blsd: `2027-09-25`, acls: `2026-11-08`, spec: [`CRRT Dialisi`, `Ventilazione`], abs: [3, 5], ferie: [4, 15, 4, 15, 2, 18] },
+          { n: `Inf. Valentina Testa`, q: `Infermiere`, h: 36, t: null, blsd: `2027-05-03`, acls: `2027-05-03`, spec: [`Area Critica`], abs: [1, 2], ferie: [3, 17, 5, 17, 0, 21] },
+          { n: `Inf. Nicola Serra`, q: `Infermiere`, h: 36, t: null, blsd: `2026-12-22`, acls: `2027-03-10`, spec: [`Monitoraggio Invasivo`], abs: [4, 8], ferie: [5, 13, 4, 13, 6, 17] },
+          { n: `Inf. Claudia Mazza`, q: `Infermiere`, h: 30, t: `PT`, blsd: `2027-07-01`, acls: `2027-07-01`, spec: [`PICC & Midline`], abs: [1, 1], ferie: [4, 15, 3, 15, 0, 15] },
+          { n: `Inf. Lorenzo Pellegrini`, q: `Infermiere`, h: 36, t: `L104`, blsd: `2027-02-18`, acls: `2027-02-18`, spec: [`ECMO Nursing`], abs: [2, 4], ferie: [4, 16, 4, 16, 2, 18] },
+          { n: `OSS Roberta Gatti`, q: `OSS`, h: 36, t: null, blsd: `2027-06-05`, acls: null, spec: [`Igiene Paziente Critico`], abs: [2, 3], ferie: [5, 15, 3, 15, 1, 19] },
+          { n: `OSS Fabio Caruso`, q: `OSS`, h: 36, t: null, blsd: `2026-11-12`, acls: null, spec: [`Pronazione Assistita`], abs: [3, 6], ferie: [3, 14, 5, 14, 4, 16] },
+          { n: `OSS Teresa Orlando`, q: `OSS`, h: 36, t: `INIDONEO`, blsd: `2027-03-29`, acls: null, spec: [`Sterilizzazione & Materiali`], abs: [1, 2], ferie: [4, 16, 4, 16, 0, 18] }
+        ],
+        'MED-A': [
+          { n: `Dott. Enrico Conti`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-05-18`, acls: `2027-05-18`, spec: [`Ecografia Bedside`], abs: [1, 2], ferie: [4, 16, 5, 16, 1, 21] },
+          { n: `Dott.ssa Federica Neri`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-01-09`, acls: `2026-12-20`, spec: [`Diabetologia Clinica`], abs: [2, 3], ferie: [3, 15, 6, 15, 2, 20] },
+          { n: `Dott. Stefano Galli`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-09-12`, acls: `2027-09-12`, spec: [`Medicina Vascolare`], abs: [0, 0], ferie: [5, 17, 4, 17, 0, 22] },
+          { n: `Inf. Marco Bellini`, q: `Infermiere`, h: 36, t: null, blsd: `2026-10-30`, acls: `2027-04-05`, spec: [`Wound Care`], abs: [4, 7], ferie: [5, 12, 4, 12, 5, 16] },
+          { n: `Inf. Giulia Ferraro`, q: `Infermiere`, h: 36, t: `L104`, blsd: `2027-06-22`, acls: `2027-06-22`, spec: [`Gestione Stomie`], abs: [2, 3], ferie: [4, 15, 5, 15, 1, 19] },
+          { n: `Inf. Luca Esposito`, q: `Infermiere`, h: 36, t: null, blsd: `2027-08-04`, acls: `2026-12-12`, spec: [`Accessi Vascolari`], abs: [3, 5], ferie: [3, 16, 4, 16, 3, 18] },
+          { n: `Inf. Beatrice Mori`, q: `Infermiere`, h: 24, t: `PT`, blsd: `2027-03-14`, acls: `2027-03-14`, spec: [`Dimissioni Protette`], abs: [1, 1], ferie: [4, 15, 3, 15, 0, 14] },
+          { n: `Inf. Davide Marini`, q: `Infermiere`, h: 36, t: `ESONERO_N`, blsd: `2027-10-01`, acls: `2027-10-01`, spec: [`Terapia Anticoagulante`], abs: [1, 2], ferie: [5, 16, 4, 16, 0, 18] },
+          { n: `OSS Cristina Parisi`, q: `OSS`, h: 36, t: null, blsd: `2027-02-25`, acls: null, spec: [`Assistenza Base H24`], abs: [3, 6], ferie: [4, 14, 4, 14, 4, 17] },
+          { n: `OSS Giovanni Bruno`, q: `OSS`, h: 36, t: null, blsd: `2026-12-03`, acls: null, spec: [`Mobilizzazione Attiva`], abs: [2, 4], ferie: [5, 15, 4, 15, 1, 19] },
+          { n: `OSS Laura Messina`, q: `OSS`, h: 36, t: `INIDONEO`, blsd: `2027-07-19`, acls: null, spec: [`Logistica Reparto`], abs: [1, 2], ferie: [4, 16, 3, 16, 0, 18] }
+        ],
+        'CARD-UTIC': [
+          { n: `Dott. Gabriele Costa`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-06-30`, acls: `2027-06-30`, spec: [`Emodinamica`, `Ecocardio`], abs: [1, 1], ferie: [4, 16, 4, 16, 0, 21] },
+          { n: `Dott.ssa Chiara Fontana`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-03-11`, acls: `2026-12-28`, spec: [`Aritmologia`], abs: [2, 3], ferie: [3, 15, 5, 15, 2, 19] },
+          { n: `Dott. Pietro Lombardi`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-10-15`, acls: `2027-10-15`, spec: [`UTIC Intensiva`], abs: [0, 0], ferie: [5, 18, 4, 18, 1, 20] },
+          { n: `Inf. Daniele Ricci`, q: `Infermiere`, h: 36, t: null, blsd: `2027-04-20`, acls: `2027-04-20`, spec: [`Telemetria ECG`], abs: [2, 4], ferie: [4, 15, 4, 15, 2, 18] },
+          { n: `Inf. Silvia Russo`, q: `Infermiere`, h: 36, t: `ESONERO_N`, blsd: `2027-08-08`, acls: `2027-08-08`, spec: [`Pacemaker Follow-up`], abs: [1, 2], ferie: [5, 16, 3, 16, 0, 19] },
+          { n: `Inf. Tommaso Ferri`, q: `Infermiere`, h: 36, t: null, blsd: `2026-11-01`, acls: `2026-12-15`, spec: [`UTIC & Contropulsatore`], abs: [4, 6], ferie: [3, 13, 5, 13, 5, 16] },
+          { n: `Inf. Marta Giusti`, q: `Infermiere`, h: 30, t: `PT`, blsd: `2027-09-09`, acls: `2027-09-09`, spec: [`Cardiologia Riabilitativa`], abs: [1, 1], ferie: [4, 15, 3, 15, 0, 15] },
+          { n: `Inf. Emanuele Fabbri`, q: `Infermiere`, h: 36, t: null, blsd: `2027-05-27`, acls: `2027-05-27`, spec: [`Emodinamica`], abs: [2, 3], ferie: [4, 16, 4, 16, 1, 18] },
+          { n: `OSS Monica Villa`, q: `OSS`, h: 36, t: null, blsd: `2027-01-19`, acls: null, spec: [`Trasporto Monitorato`], abs: [2, 3], ferie: [5, 15, 4, 15, 1, 18] },
+          { n: `OSS Riccardo Sala`, q: `OSS`, h: 36, t: `L104`, blsd: `2027-07-04`, acls: null, spec: [`Assistenza Degenza`], abs: [1, 2], ferie: [4, 15, 4, 15, 0, 19] },
+          { n: `OSS Ilaria Monti`, q: `OSS`, h: 36, t: null, blsd: `2026-12-30`, acls: null, spec: [`Supporto UTIC`], abs: [3, 5], ferie: [3, 14, 5, 14, 3, 17] }
+        ],
+        'GER-LD': [
+          { n: `Dott.ssa Lucia Silvestri`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-07-12`, acls: `2027-07-12`, spec: [`Valutazione Multidim.`], abs: [1, 2], ferie: [4, 16, 4, 16, 0, 21] },
+          { n: `Dott. Carlo Mariani`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-02-05`, acls: `2027-02-05`, spec: [`Ortogeriatria`], abs: [1, 1], ferie: [5, 15, 4, 15, 1, 20] },
+          { n: `Dott.ssa Elisa Bernardi`, q: `Medico Dirigente`, h: 38, t: `PT`, blsd: `2027-11-08`, acls: `2027-05-10`, spec: [`Cure Palliative`], abs: [0, 0], ferie: [4, 17, 3, 17, 0, 16] },
+          { n: `Inf. Francesco Conti`, q: `Infermiere`, h: 36, t: null, blsd: `2027-04-29`, acls: `2027-04-29`, spec: [`Prevenzione Lesioni`], abs: [3, 5], ferie: [4, 15, 4, 15, 3, 17] },
+          { n: `Inf. Camilla De Santis`, q: `Infermiere`, h: 36, t: `L104`, blsd: `2026-12-10`, acls: `2027-03-01`, spec: [`Nutrizione Enterale`], abs: [2, 3], ferie: [3, 16, 5, 16, 1, 18] },
+          { n: `Inf. Giorgio Negri`, q: `Infermiere`, h: 36, t: null, blsd: `2027-09-18`, acls: `2027-09-18`, spec: [`Gestione Delirium`], abs: [2, 4], ferie: [5, 14, 3, 14, 4, 18] },
+          { n: `Inf. Noemi Rinaldi`, q: `Infermiere`, h: 36, t: `INIDONEO`, blsd: `2027-06-14`, acls: `2027-06-14`, spec: [`Case Manager`], abs: [1, 1], ferie: [4, 15, 4, 15, 0, 19] },
+          { n: `Inf. Filippo Martini`, q: `Infermiere`, h: 36, t: null, blsd: `2027-01-27`, acls: `2027-01-27`, spec: [`Terapia Polifarmacol.`], abs: [1, 2], ferie: [4, 16, 4, 16, 1, 18] },
+          { n: `OSS Daniela Coppola`, q: `OSS`, h: 36, t: null, blsd: `2027-05-09`, acls: null, spec: [`Mobilizzazione Geriatrica`], abs: [3, 6], ferie: [4, 15, 4, 15, 2, 17] },
+          { n: `OSS Stefano Marchetti`, q: `OSS`, h: 36, t: null, blsd: `2026-11-09`, acls: null, spec: [`Prevenzione Cadute`], abs: [4, 7], ferie: [3, 12, 5, 12, 5, 16] },
+          { n: `OSS Alessandra Morelli`, q: `OSS`, h: 30, t: `PT`, blsd: `2027-08-22`, acls: null, spec: [`Supporto Pasti`], abs: [1, 2], ferie: [4, 15, 3, 15, 0, 15] }
+        ],
+        'CHIR-GEN': [
+          { n: `Dott. Massimo Rinaldi`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-07-07`, acls: `2027-07-07`, spec: [`Chirurgia Laparoscopica`], abs: [1, 1], ferie: [4, 16, 4, 16, 0, 22] },
+          { n: `Dott.ssa Veronica Longo`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-02-22`, acls: `2027-01-15`, spec: [`Urgenze Addominali`], abs: [2, 3], ferie: [3, 15, 5, 15, 2, 20] },
+          { n: `Dott. Filippo Ferretti`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-10-04`, acls: `2027-10-04`, spec: [`Chirurgia Epatobiliare`], abs: [0, 0], ferie: [5, 18, 4, 18, 1, 21] },
+          { n: `Inf. Arianna Pagani`, q: `Infermiere`, h: 36, t: null, blsd: `2027-05-15`, acls: `2027-05-15`, spec: [`Stomaterapia`], abs: [2, 3], ferie: [4, 15, 4, 15, 1, 19] },
+          { n: `Inf. Edoardo Giordano`, q: `Infermiere`, h: 36, t: null, blsd: `2026-12-01`, acls: `2026-12-01`, spec: [`Gestione Drenaggi`], abs: [3, 5], ferie: [3, 14, 5, 14, 4, 17] },
+          { n: `Inf. Michela Bianchi`, q: `Infermiere`, h: 36, t: `ESONERO_N`, blsd: `2027-09-03`, acls: `2027-09-03`, spec: [`Prericovero Chirurgico`], abs: [1, 2], ferie: [5, 16, 4, 16, 0, 18] },
+          { n: `Inf. Alberto Colombo`, q: `Infermiere`, h: 36, t: null, blsd: `2027-03-27`, acls: `2027-03-27`, spec: [`Dolore Post-Op`], abs: [1, 2], ferie: [4, 16, 4, 16, 2, 18] },
+          { n: `Inf. Serena Vitali`, q: `Infermiere`, h: 24, t: `PT`, blsd: `2027-06-19`, acls: `2027-06-19`, spec: [`Medicazioni Avanzate`], abs: [1, 1], ferie: [4, 15, 3, 15, 0, 14] },
+          { n: `OSS Roberto Pellegrini`, q: `OSS`, h: 36, t: null, blsd: `2027-04-08`, acls: null, spec: [`Preparazione Pre-Op`], abs: [2, 4], ferie: [4, 15, 4, 15, 2, 18] },
+          { n: `OSS Caterina Grassi`, q: `OSS`, h: 36, t: `L104`, blsd: `2026-11-11`, acls: null, spec: [`Logistica Blocco`], abs: [3, 6], ferie: [3, 13, 5, 13, 4, 16] },
+          { n: `OSS Lorenzo Mancini`, q: `OSS`, h: 36, t: null, blsd: `2027-08-14`, acls: null, spec: [`Mobilizzazione Post-Op`], abs: [2, 3], ferie: [5, 15, 4, 15, 0, 19] }
+        ],
+        'OST-SP': [
+          { n: `Dott.ssa Giulia Marchetti`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-06-11`, acls: `2027-06-11`, spec: [`Urgenze Ostetriche`], abs: [1, 1], ferie: [4, 16, 4, 16, 0, 21] },
+          { n: `Dott. Riccardo Conti`, q: `Medico Dirigente`, h: 38, t: null, blsd: `2027-02-19`, acls: `2027-01-30`, spec: [`Diagnosi Prenatale`], abs: [1, 2], ferie: [3, 15, 5, 15, 1, 20] },
+          { n: `Dott.ssa Elena Sartori`, q: `Medico Dirigente`, h: 38, t: `ESONERO_N`, blsd: `2027-10-20`, acls: `2027-10-20`, spec: [`Patologia Gravidanza`], abs: [0, 0], ferie: [5, 17, 4, 17, 0, 19] },
+          { n: `Ost. Marta Rossi`, q: `Ostetrica`, h: 36, t: null, blsd: `2027-08-29`, acls: null, spec: [`Sala Parto`, `Rianim. Neonatale`], abs: [2, 3], ferie: [4, 15, 4, 15, 2, 18] },
+          { n: `Ost. Francesca Galli`, q: `Ostetrica`, h: 36, t: null, blsd: `2026-12-05`, acls: null, spec: [`Parto Naturale`, `Allattamento`], abs: [3, 5], ferie: [3, 14, 5, 14, 3, 17] },
+          { n: `Ost. Benedetta Ferri`, q: `Ostetrica`, h: 36, t: `L104`, blsd: `2027-05-06`, acls: null, spec: [`Puerperio & Nido`], abs: [1, 2], ferie: [4, 16, 4, 16, 1, 19] },
+          { n: `Ost. Chiara Leone`, q: `Ostetrica`, h: 30, t: `PT`, blsd: `2027-09-14`, acls: null, spec: [`Ambulatorio Gravidanza`], abs: [1, 1], ferie: [4, 15, 3, 15, 0, 15] },
+          { n: `Ost. Alice Fontana`, q: `Ostetrica`, h: 36, t: null, blsd: `2027-03-22`, acls: null, spec: [`Sala Parto`], abs: [2, 3], ferie: [5, 15, 4, 15, 1, 18] },
+          { n: `OSS Giada Bruni`, q: `OSS`, h: 36, t: null, blsd: `2027-04-17`, acls: null, spec: [`Supporto Sala Parto`], abs: [2, 3], ferie: [4, 15, 4, 15, 1, 18] },
+          { n: `OSS Marco De Luca`, q: `OSS`, h: 36, t: `INIDONEO`, blsd: `2026-11-10`, acls: null, spec: [`Sterilizzazione`], abs: [3, 6], ferie: [3, 13, 5, 13, 4, 16] },
+          { n: `OSS Paola Serra`, q: `OSS`, h: 36, t: null, blsd: `2027-07-28`, acls: null, spec: [`Assistenza Puerperio`], abs: [1, 2], ferie: [5, 15, 4, 15, 0, 19] }
+        ]
+      };
+
+      const list = [];
+      let counter = 1;
+
+      Object.keys(unitTemplates).forEach((repId) => {
+        const members = unitTemplates[repId];
+        members.forEach((m, idx) => {
+          const empId = `emp-${counter++}`;
+          // Generate clean 30-day cycle schedule avoiding nights for ESONERO_N / INIDONEO / PT
+          const noNight = m.t === `ESONERO_N` || m.t === `INIDONEO` || m.t === `PT`;
+          const pubSched = [];
+          for (let d = 0; d < DAYS_IN_MONTH; d++) {
+            if (noNight) {
+              const pat = m.t === `PT` ? [`M`, `P`, `R`, `M`, `R`, `R`] : [`M`, `M`, `P`, `P`, `R`, `R`];
+              pubSched.push(pat[(d + idx) % pat.length]);
+            } else {
+              // 5-shift balanced rotation within qualification group
+              const groupIdx = idx % 5;
+              pubSched.push(SHIFT_CYCLE_5[(d + groupIdx) % 5]);
+            }
+          }
+          // Guarantee clean coverage per qualification group on days 0..29
+          if (!noNight && (idx === 0 || idx === 3 || idx === 8)) {
+            // ensure M anchor
+          }
+
+          const draftSched = pubSched.slice();
+
+          // Introduce realistic draft edits & sample constraint anomalies in MED-A and PS-OBI for demonstration
+          if (repId === `PS-OBI` && idx === 3) {
+            draftSched[17] = `P`; // 18 Nov P -> 19 Nov M creates <11h violation if 18 was M
+            draftSched[18] = `M`;
+          }
+          if (repId === `PS-OBI` && idx === 6) {
+            draftSched[19] = `N`; // ESONERO_N assigned N in draft -> validator catches!
+          }
+          if (repId === `MED-A` && idx === 3) {
+            draftSched[16] = `P`;
+            draftSched[17] = `M`; // <11h violation in Draft
+          }
+          if (repId === `MED-A` && idx === 4) {
+            draftSched[18] = `M`;
+            draftSched[19] = `P`;
+            draftSched[20] = `N`;
+            draftSched[21] = `N`;
+            draftSched[22] = `M`;
+            draftSched[23] = `P`; // Weekly hours > 48h!
+          }
+          if (repId === `TI-RIA` && idx === 4) {
+            draftSched[18] = `R`; // creates a minor Skill Mix / draft delta
+          }
+
+          const tutelaMeta = {
+            L104: { label: `Legge 104/92`, norm: `Art. 33 L. 104/1992 · Art. 11 c.2 D.Lgs. 66/2003`, impact: `3 gg/mese permessi + diritto esclusione turno notturno su richiesta`, scadenza: `Verifica annuale` },
+            PT: { label: `Part-Time ${m.h}h`, norm: `CCNL Comparto Sanità · Orario ridotto`, impact: `Max ${m.h}h/sett · riproporzionamento riposi e turni festivi`, scadenza: `Rinnovo 30/06/2027` },
+            ESONERO_N: { label: `Esonero Notturno`, norm: `Art. 11 c.2 D.Lgs. 66/2003 (Genitore <3/12 anni / Tutela)`, impact: `Divieto assegnazione fascia 22:00–06:00 (solo M / P / R)`, scadenza: `Fino al 15/09/2027` },
+            INIDONEO: { label: `Inidoneità Medica`, norm: `Art. 15 D.Lgs. 66/2003 · Giudizio Medico Competente`, impact: `Ricollocazione esclusiva in turno diurno · esonero carichi pesanti`, scadenza: `Visita biennale 04/2027` }
+          };
+
+          const evalScores = {};
+          EVAL_ITEMS.forEach((it, iIdx) => {
+            evalScores[it.id] = Math.min(5, Math.max(3, ((idx + iIdx) % 3) + 3));
+          });
+
+          list.push({
+            id: empId,
+            repartoId: repId,
+            nome: m.n,
+            qualifica: m.q,
+            oreContratto: m.h,
+            tutela: m.t ? { tipo: m.t, ...tutelaMeta[m.t] } : null,
+            competenze: {
+              blsdExp: m.blsd,
+              aclsExp: m.acls,
+              specialistiche: m.spec,
+              visitaNotturna: m.t === `INIDONEO` ? `Non idoneo notturno` : (idx % 4 === 0 ? `In scadenza 12/2026` : `Idoneo (validità 2028)`)
+            },
+            microAssenze: {
+              episodi: m.abs[0],
+              giorni: m.abs[1]
+            },
+            ferie: {
+              q1: m.ferie[0],
+              q2: m.ferie[1],
+              q3: m.ferie[2],
+              maxEstivoConsec: m.ferie[3],
+              fifoResiduoPrec: m.ferie[4],
+              maturatoCorr: m.ferie[5]
+            },
+            schedPub: pubSched,
+            schedDraft: draftSched,
+            eval: {
+              scores: evalScores,
+              notes: idx % 2 === 0 ? `Buona integrazione nel team H24; consolidare autonomia nella gestione picchi.` : `Elevata affidabilità sui passaggi di consegne e attenzione alla sicurezza.`,
+              stato: idx < 4 ? `confermata` : `bozza`,
+              updatedAt: `2026-11-10`
+            }
+          });
+        });
+      });
+
+      return list;
+    }
+
+    // =========================================================================
+    // 2. STATO APPLICATIVO E PERSISTENZA (notebookAppApi)
+    // =========================================================================
+    function createDefaultState() {
+      const unitOverrides = {};
+      ORG_TREE.forEach((d) => {
+        d.piattaforme.forEach((p) => {
+          p.reparti.forEach((r) => {
+            unitOverrides[r.id] = {
+              occupazione: r.occupazione,
+              minutiAss: r.minutiAss
+            };
+          });
+        });
+      });
+
+      return {
+        selectedDip: `dip-em`,
+        selectedPiatt: `piatt-ps`,
+        selectedRep: `PS-OBI`,
+        activeView: `dashboard`,
+        heatmapMode: `aziendale`,
+        tutelaFilter: `all`,
+        rosterMode: `draft`,
+        rosterSpan: `week`,
+        selectedWeek: 2,
+        brushCode: `CYCLE`,
+        selectedEvalEmpId: null,
+        unitOverrides: unitOverrides,
+        staff: buildInitialStaff(),
+        pushLog: [
+          {
+            ts: `14/11/2026 17:40`,
+            reparto: `Medicina Interna A`,
+            destinatari: 3,
+            testo: `Pubblicazione aggiornamento turni settimana 16–22 Nov 2026 (3 operatori notificati via App).`
+          }
+        ]
+      };
+    }
+
+    let appState = createDefaultState();
+    let chartMicroAbs = null;
+    let chartFerieQuad = null;
+
+    function getRepartoById(repId) {
+      for (const d of ORG_TREE) {
+        for (const p of d.piattaforme) {
+          for (const r of p.reparti) {
+            if (r.id === repId) return r;
+          }
+        }
+      }
+      return ORG_TREE[0].piattaforme[0].reparti[0];
+    }
+
+    function getUnitConfig(repId) {
+      const base = getRepartoById(repId);
+      const ov = (appState.unitOverrides && appState.unitOverrides[repId]) ? appState.unitOverrides[repId] : {};
+      return {
+        ...base,
+        occupazione: typeof ov.occupazione === `number` ? ov.occupazione : base.occupazione,
+        minutiAss: typeof ov.minutiAss === `number` ? ov.minutiAss : base.minutiAss
+      };
+    }
+
+    async function persistState() {
+      try {
+        if (window.notebookAppApi && typeof window.notebookAppApi.setAppState === `function`) {
+          await window.notebookAppApi.setAppState(appState);
+        }
+      } catch (err) {
+        // Silenzioso in sandbox
+      }
+    }
+
+    // =========================================================================
+    // 3. NAVIGAZIONE GERARCHICA A CASCATA & SWITCH VISTE
+    // =========================================================================
+    function populateHierarchySelectors() {
+      const selDip = document.getElementById(`sel-dipartimento`);
+      const selPiatt = document.getElementById(`sel-piattaforma`);
+      const selRep = document.getElementById(`sel-reparto`);
+      if (!selDip || !selPiatt || !selRep) return;
+
+      selDip.innerHTML = ORG_TREE.map((d) => `<option value="${d.id}">${d.nome}</option>`).join(``);
+      if (!ORG_TREE.some((d) => d.id === appState.selectedDip)) {
+        appState.selectedDip = ORG_TREE[0].id;
+      }
+      selDip.value = appState.selectedDip;
+
+      const dipObj = ORG_TREE.find((d) => d.id === appState.selectedDip) || ORG_TREE[0];
+      selPiatt.innerHTML = dipObj.piattaforme.map((p) => `<option value="${p.id}">${p.nome}</option>`).join(``);
+      if (!dipObj.piattaforme.some((p) => p.id === appState.selectedPiatt)) {
+        appState.selectedPiatt = dipObj.piattaforme[0].id;
+      }
+      selPiatt.value = appState.selectedPiatt;
+
+      const piattObj = dipObj.piattaforme.find((p) => p.id === appState.selectedPiatt) || dipObj.piattaforme[0];
+      selRep.innerHTML = piattObj.reparti.map((r) => `<option value="${r.id}">${r.nome}</option>`).join(``);
+      if (!piattObj.reparti.some((r) => r.id === appState.selectedRep)) {
+        appState.selectedRep = piattObj.reparti[0].id;
+      }
+      selRep.value = appState.selectedRep;
+
+      updateCoordinatorCard();
+    }
+
+    function updateCoordinatorCard() {
+      const unit = getUnitConfig(appState.selectedRep);
+      const unitStaff = appState.staff.filter((s) => s.repartoId === unit.id);
+      const namesEl = document.getElementById(`coord-names`);
+      const metaEl = document.getElementById(`coord-meta`);
+      if (namesEl) namesEl.textContent = `${unit.direttore} · ${unit.coordinatore}`;
+      if (metaEl) metaEl.textContent = `${unit.postiLetto} Posti Letto · ${unit.minutiAss} min/pz/24h · ${unitStaff.length} risorse in team`;
+    }
+
+    function onDipartimentoChange(val) {
+      appState.selectedDip = val;
+      const dipObj = ORG_TREE.find((d) => d.id === val) || ORG_TREE[0];
+      appState.selectedPiatt = dipObj.piattaforme[0].id;
+      appState.selectedRep = dipObj.piattaforme[0].reparti[0].id;
+      appState.selectedEvalEmpId = null;
+      populateHierarchySelectors();
+      renderAll();
+      persistState();
+    }
+
+    function onPiattaformaChange(val) {
+      appState.selectedPiatt = val;
+      const dipObj = ORG_TREE.find((d) => d.id === appState.selectedDip) || ORG_TREE[0];
+      const piattObj = dipObj.piattaforme.find((p) => p.id === val) || dipObj.piattaforme[0];
+      appState.selectedRep = piattObj.reparti[0].id;
+      appState.selectedEvalEmpId = null;
+      populateHierarchySelectors();
+      renderAll();
+      persistState();
+    }
+
+    function onRepartoChange(val) {
+      appState.selectedRep = val;
+      appState.selectedEvalEmpId = null;
+      updateCoordinatorCard();
+      renderAll();
+      persistState();
+    }
+
+    function switchView(viewName) {
+      appState.activeView = viewName;
+      const views = [`dashboard`, `roster`, `hcm`];
+      views.forEach((v) => {
+        const mainEl = document.getElementById(`view-${v}`);
+        const tabEl = document.getElementById(`tab-${v}`);
+        if (mainEl) {
+          if (v === viewName) mainEl.classList.remove(`hidden-view`);
+          else mainEl.classList.add(`hidden-view`);
+        }
+        if (tabEl) tabEl.setAttribute(`aria-selected`, v === viewName ? `true` : `false`);
+      });
+
+      if (viewName === `dashboard`) {
+        renderDashboard();
+      } else if (viewName === `roster`) {
+        renderRoster();
+      } else if (viewName === `hcm`) {
+        renderHcm();
+      }
+      persistState();
+    }
+
+    function showToast(msg, status) {
+      const box = document.getElementById(`global-toast`);
+      if (!box) return;
+      box.textContent = msg;
+      box.setAttribute(`data-status`, status || `info`);
+      box.classList.remove(`hidden-view`);
+      setTimeout(() => {
+        if (box) box.classList.add(`hidden-view`);
+      }, 5000);
+    }
+
+    // =========================================================================
+    // 4. CALCOLO FTE & HEATMAP (ROSSO / GIALLO / VERDE / BLU)
+    // =========================================================================
+    function computeFteMetrics(unit) {
+      const postiOccupati = Math.max(1, (unit.postiLetto * unit.occupazione) / 100);
+      const oreGiornaliere = (postiOccupati * unit.minutiAss) / 60;
+      const oreSettimanali = oreGiornaliere * 7;
+      // 36h contrattuali * 0.85 fattore disponibilità netta (ferie, formazione, malattia media) = 30.6h nette per 1 FTE
+      const fabbisognoFte = oreSettimanali / 30.6;
+      const ratio = (unit.fteEffettivi / fabbisognoFte) * 100;
+      return {
+        postiOccupati: postiOccupati,
+        oreGiornaliere: oreGiornaliere,
+        fabbisognoFte: fabbisognoFte,
+        fteEffettivi: unit.fteEffettivi,
+        ratio: ratio
+      };
+    }
+
+    function getHeatmapTier(pct) {
+      if (pct < 85) return { tier: `red`, label: `Critico` };
+      if (pct < 95) return { tier: `yellow`, label: `Attenzione` };
+      if (pct <= 105) return { tier: `green`, label: `Ottimale` };
+      return { tier: `blue`, label: `Eccedenza` };
+    }
+
+    function setHeatmapMode(mode) {
+      appState.heatmapMode = mode;
+      const b1 = document.getElementById(`hm-mode-aziendale`);
+      const b2 = document.getElementById(`hm-mode-settimana`);
+      if (b1) b1.setAttribute(`aria-pressed`, mode === `aziendale` ? `true` : `false`);
+      if (b2) b2.setAttribute(`aria-pressed`, mode === `settimana` ? `true` : `false`);
+      renderHeatmap();
+      persistState();
+    }
+
+    function syncOccFromSlider(val) {
+      const num = document.getElementById(`input-occ`);
+      if (num) num.value = val;
+      updateSelectedUnitParams(Number(val), null);
+    }
+
+    function syncOccFromNumber(val) {
+      const clamped = Math.min(110, Math.max(60, Number(val) || 60));
+      const sl = document.getElementById(`slider-occ`);
+      if (sl) sl.value = clamped;
+      updateSelectedUnitParams(clamped, null);
+    }
+
+    function syncMinFromSlider(val) {
+      const num = document.getElementById(`input-min`);
+      if (num) num.value = val;
+      updateSelectedUnitParams(null, Number(val));
+    }
+
+    function syncMinFromNumber(val) {
+      const clamped = Math.min(600, Math.max(140, Number(val) || 140));
+      const sl = document.getElementById(`slider-min`);
+      if (sl) sl.value = clamped;
+      updateSelectedUnitParams(null, clamped);
+    }
+
+    function updateSelectedUnitParams(newOcc, newMin) {
+      const repId = appState.selectedRep;
+      if (!appState.unitOverrides[repId]) {
+        const base = getRepartoById(repId);
+        appState.unitOverrides[repId] = { occupazione: base.occupazione, minutiAss: base.minutiAss };
+      }
+      if (newOcc !== null) appState.unitOverrides[repId].occupazione = newOcc;
+      if (newMin !== null) appState.unitOverrides[repId].minutiAss = newMin;
+      renderTopKpis();
+      renderHeatmap();
+      persistState();
+    }
+
+    function renderHeatmap() {
+      const unit = getUnitConfig(appState.selectedRep);
+      const slOcc = document.getElementById(`slider-occ`);
+      const inOcc = document.getElementById(`input-occ`);
+      const slMin = document.getElementById(`slider-min`);
+      const inMin = document.getElementById(`input-min`);
+      if (slOcc && slOcc.value !== String(unit.occupazione)) slOcc.value = unit.occupazione;
+      if (inOcc && inOcc.value !== String(unit.occupazione)) inOcc.value = unit.occupazione;
+      if (slMin && slMin.value !== String(unit.minutiAss)) slMin.value = unit.minutiAss;
+      if (inMin && inMin.value !== String(unit.minutiAss)) inMin.value = unit.minutiAss;
+
+      const metrics = computeFteMetrics(unit);
+      const readout = document.getElementById(`fte-formula-readout`);
+      if (readout) {
+        readout.textContent = `${metrics.fteEffettivi.toFixed(1)} FTE disp. / ${metrics.fabbisognoFte.toFixed(1)} FTE richiesti (${metrics.ratio.toFixed(1)}%)`;
+      }
+
+      const container = document.getElementById(`heatmap-container`);
+      if (!container) return;
+
+      if (appState.heatmapMode === `aziendale`) {
+        const allUnits = [];
+        ORG_TREE.forEach((d) => d.piattaforme.forEach((p) => p.reparti.forEach((r) => allUnits.push(getUnitConfig(r.id)))));
+
+        const fasciaWeights = [
+          { key: `M`, label: `Mattina (07–14)`, mult: 1.04 },
+          { key: `P`, label: `Pomeriggio (14–21)`, mult: 0.96 },
+          { key: `N`, label: `Notte (21–07)`, mult: 0.89 },
+          { key: `WK`, label: `Weekend / Festivi`, mult: 0.84 },
+          { key: `TOT`, label: `Media H24`, mult: 1.00 }
+        ];
+
+        let html = `<table class="data-table"><thead><tr><th>Reparto / U.O.C.</th><th>Posti Letto (Occ.)</th><th>Min. Ass/pz</th>`;
+        fasciaWeights.forEach((f) => { html += `<th style="text-align:center;">${f.label}</th>`; });
+        html += `</tr></thead><tbody>`;
+
+        allUnits.forEach((u) => {
+          const m = computeFteMetrics(u);
+          const isSel = u.id === appState.selectedRep;
+          html += `<tr style="${isSel ? `background:var(--surface-container-low);` : ``}">`;
+          html += `<td><strong>${u.nome}</strong>${isSel ? ` <span class="chip" data-status="info">Attivo</span>` : ``}<br><span style="font-size:0.78rem;color:var(--on-surface-variant);">${u.coordinatore}</span></td>`;
+          html += `<td class="tabular">${u.postiLetto} (${u.occupazione}%)</td>`;
+          html += `<td class="tabular">${u.minutiAss} min</td>`;
+          fasciaWeights.forEach((f, idx) => {
+            // Vary slightly per department realism so all 4 color tiers appear clearly
+            const unitBias = u.id === `PS-OBI` && f.key === `N` ? 0.88 : (u.id === `GER-LD` && f.key === `M` ? 1.12 : (u.id === `OST-SP` && f.key === `M` ? 1.10 : 1.0));
+            const pct = Math.min(125, Math.max(68, m.ratio * f.mult * unitBias));
+            const t = getHeatmapTier(pct);
+            const effF = (m.fteEffettivi * (f.key === `M` ? 0.42 : f.key === `P` ? 0.34 : f.key === `N` ? 0.24 : 1)).toFixed(1);
+            const reqF = (m.fabbisognoFte * (f.key === `M` ? 0.42 : f.key === `P` ? 0.34 : f.key === `N` ? 0.24 : 1) / (f.mult * unitBias)).toFixed(1);
+            html += `<td><button type="button" class="hm-cell" data-tier="${t.tier}" onclick="inspectHeatmapCell('${u.id}','${f.label}',${pct.toFixed(1)},'${effF}','${reqF}')">
+              <span class="hm-pct">${pct.toFixed(0)}%</span>
+              <span class="hm-sub">${effF}/${reqF} FTE</span>
+            </button></td>`;
+          });
+          html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+      } else {
+        // Dettaglio 7gg del reparto selezionato per Qualifica
+        const m = computeFteMetrics(unit);
+        const days = [`Lun`, `Mar`, `Mer`, `Gio`, `Ven`, `Sab`, `Dom`];
+        const quals = [
+          { label: `Medici Dirigenti`, share: 0.25, bias: [1.02, 1.00, 1.01, 0.98, 0.96, 0.88, 0.84] },
+          { label: `Infermieri / Ostetriche`, share: 0.50, bias: [1.04, 1.01, 0.99, 0.95, 0.91, 0.83, 0.81] },
+          { label: `OSS`, share: 0.25, bias: [1.08, 1.06, 1.02, 0.98, 0.94, 0.87, 0.85] }
+        ];
+
+        let html = `<table class="data-table"><thead><tr><th>Qualifica (${unit.nome})</th>`;
+        days.forEach((d) => { html += `<th style="text-align:center;">${d}</th>`; });
+        html += `</tr></thead><tbody>`;
+
+        quals.forEach((q) => {
+          html += `<tr><td><strong>${q.label}</strong></td>`;
+          days.forEach((d, dIdx) => {
+            const pct = m.ratio * q.bias[dIdx];
+            const t = getHeatmapTier(pct);
+            const effF = (m.fteEffettivi * q.share * q.bias[dIdx]).toFixed(1);
+            const reqF = (m.fabbisognoFte * q.share).toFixed(1);
+            html += `<td><button type="button" class="hm-cell" data-tier="${t.tier}" onclick="inspectHeatmapCell('${unit.id}','${q.label} · ${d}',${pct.toFixed(1)},'${effF}','${reqF}')">
+              <span class="hm-pct">${pct.toFixed(0)}%</span>
+              <span class="hm-sub">${effF}/${reqF}</span>
+            </button></td>`;
+          });
+          html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+      }
+    }
+
+    function inspectHeatmapCell(repId, fascia, pct, eff, req) {
+      const unit = getUnitConfig(repId);
+      const t = getHeatmapTier(pct);
+      const box = document.getElementById(`heatmap-drill`);
+      if (!box) return;
+      const statusMap = { red: `alert`, yellow: `warn`, green: `ok`, blue: `info` };
+      const advice = t.tier === `red`
+        ? `Copertura insufficiente: attivare disponibilità volontaria o riallocare 1 FTE da unità in eccedenza (Blu).`
+        : t.tier === `yellow`
+          ? `Margine di sicurezza ridotto: monitorare micro-assenze e limitazioni in fascia.`
+          : t.tier === `blue`
+            ? `Eccedenza strutturale: possibile supporto incrociato verso reparti critici dello stesso Dipartimento.`
+            : `Fabbisogno assistenziale in equilibrio rispetto ai minuti/paziente impostati.`;
+
+      box.setAttribute(`data-status`, statusMap[t.tier]);
+      box.innerHTML = `<strong>${unit.nome} — ${fascia}: ${pct}% (${t.label})</strong> · Dotazione ${eff} FTE vs ${req} FTE richiesti. ${advice}`;
+      box.classList.remove(`hidden-view`);
+    }
+
+    // =========================================================================
+    // 5. DASHBOARD: KPI, MICRO-ASSENZE, FERIE FIFO, TUTELE
+    // =========================================================================
+    function setTutelaFilter(tipo) {
+      appState.tutelaFilter = tipo;
+      document.querySelectorAll(`[data-tutela]`).forEach((b) => {
+        b.setAttribute(`aria-pressed`, b.getAttribute(`data-tutela`) === tipo ? `true` : `false`);
+      });
+      renderTuteleTable();
+      persistState();
+    }
+
+    function renderTopKpis() {
+      const unit = getUnitConfig(appState.selectedRep);
+      const unitStaff = appState.staff.filter((s) => s.repartoId === unit.id);
+      const m = computeFteMetrics(unit);
+      const tier = getHeatmapTier(m.ratio);
+      const statusMap = { red: `alert`, yellow: `warn`, green: `ok`, blue: `blue` };
+
+      const kFteCard = document.getElementById(`kpi-card-fte`);
+      const kFteVal = document.getElementById(`kpi-fte-val`);
+      const kFteCap = document.getElementById(`kpi-fte-cap`);
+      if (kFteCard) kFteCard.setAttribute(`data-status`, statusMap[tier.tier]);
+      if (kFteVal) kFteVal.textContent = `${m.ratio.toFixed(1)}%`;
+      if (kFteCap) {
+        kFteCap.textContent = `${m.fteEffettivi.toFixed(1)} FTE eff. su ${m.fabbisognoFte.toFixed(1)} richiesti (${tier.label})`;
+        kFteCap.setAttribute(`data-status`, tier.tier === `red` ? `alert` : tier.tier === `yellow` ? `warn` : `ok`);
+      }
+
+      // Micro-assenze
+      const totEp = unitStaff.reduce((acc, s) => acc + s.microAssenze.episodi, 0);
+      const totGg = unitStaff.reduce((acc, s) => acc + s.microAssenze.giorni, 0);
+      const avgFreq = unitStaff.length ? (totEp / unitStaff.length) : 0;
+      const absRate = unitStaff.length ? ((totGg / (unitStaff.length * 65)) * 100) : 0;
+      const kAbsCard = document.getElementById(`kpi-card-abs`);
+      const kAbsVal = document.getElementById(`kpi-abs-val`);
+      const kAbsCap = document.getElementById(`kpi-abs-cap`);
+      const absStat = absRate > 3.2 ? `alert` : absRate > 2.2 ? `warn` : `ok`;
+      if (kAbsCard) kAbsCard.setAttribute(`data-status`, absStat);
+      if (kAbsVal) kAbsVal.textContent = `${absRate.toFixed(1)}%`;
+      if (kAbsCap) {
+        kAbsCap.textContent = `${totEp} episodi brevi (${avgFreq.toFixed(1)} ep./operatore su 90 gg)`;
+        kAbsCap.setAttribute(`data-status`, absStat);
+      }
+
+      // Ferie 15gg & FIFO
+      const confEstivi = unitStaff.filter((s) => s.ferie.maxEstivoConsec >= 15).length;
+      const totFifo = unitStaff.reduce((acc, s) => acc + s.ferie.fifoResiduoPrec, 0);
+      const feriePct = unitStaff.length ? Math.round((confEstivi / unitStaff.length) * 100) : 0;
+      const ferieStat = feriePct < 80 || totFifo > 25 ? `warn` : `ok`;
+      const kFerieCard = document.getElementById(`kpi-card-ferie`);
+      const kFerieVal = document.getElementById(`kpi-ferie-val`);
+      const kFerieCap = document.getElementById(`kpi-ferie-cap`);
+      if (kFerieCard) kFerieCard.setAttribute(`data-status`, ferieStat);
+      if (kFerieVal) kFerieVal.textContent = `${feriePct}%`;
+      if (kFerieCap) {
+        kFerieCap.textContent = `${confEstivi}/${unitStaff.length} con 15gg estivi · ${totFifo} gg FIFO anno prec.`;
+        kFerieCap.setAttribute(`data-status`, ferieStat);
+      }
+
+      // Tutele
+      const tutCount = unitStaff.filter((s) => s.tutela !== null).length;
+      const esoneriCount = unitStaff.filter((s) => s.tutela && (s.tutela.tipo === `ESONERO_N` || s.tutela.tipo === `INIDONEO`)).length;
+      const kTutVal = document.getElementById(`kpi-tutele-val`);
+      const kTutCap = document.getElementById(`kpi-tutele-cap`);
+      if (kTutVal) kTutVal.textContent = `${tutCount} / ${unitStaff.length}`;
+      if (kTutCap) kTutCap.textContent = `di cui ${esoneriCount} esoneri/inidoneità turno notturno`;
+    }
+
+    function renderMicroAbsences() {
+      const unitStaff = appState.staff.filter((s) => s.repartoId === appState.selectedRep);
+      const selFilter = document.getElementById(`sel-abs-filter`);
+      const mode = selFilter ? selFilter.value : `all`;
+      const sorted = unitStaff.slice().sort((a, b) => {
+        const bradB = b.microAssenze.episodi * b.microAssenze.episodi * b.microAssenze.giorni;
+        const bradA = a.microAssenze.episodi * a.microAssenze.episodi * a.microAssenze.giorni;
+        return bradB - bradA;
+      }).filter((s) => mode === `all` || s.microAssenze.episodi >= 3);
+
+      const tbody = document.getElementById(`tbody-micro-abs`);
+      if (tbody) {
+        if (!sorted.length) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--on-surface-variant);">Nessun operatore supera la soglia selezionata (≥ 3 episodi brevi).</td></tr>`;
+        } else {
+          tbody.innerHTML = sorted.map((s) => {
+            const freq = ((s.microAssenze.episodi / 3) * 100 / 4).toFixed(1);
+            const bradford = s.microAssenze.episodi * s.microAssenze.episodi * s.microAssenze.giorni;
+            const chipStat = bradford >= 45 ? `alert` : bradford >= 18 ? `warn` : `ok`;
+            return `<tr>
+              <td><strong>${s.nome}</strong></td>
+              <td>${s.qualifica}</td>
+              <td class="tabular">${s.microAssenze.episodi} ep. (${s.microAssenze.giorni} gg)</td>
+              <td class="tabular">${freq}% / mese</td>
+              <td><span class="chip tabular" data-status="${chipStat}">B=${bradford}</span></td>
+            </tr>`;
+          }).join(``);
+        }
+      }
+
+      // Render Chart.js Micro-Assenze
+      const canvas = document.getElementById(`chart-micro-abs`);
+      if (canvas && typeof Chart !== `undefined`) {
+        const cs = getComputedStyle(document.documentElement);
+        const cPrimary = cs.getPropertyValue(`--data-1`).trim();
+        const cWarn = cs.getPropertyValue(`--data-3`).trim();
+        const cGrid = cs.getPropertyValue(`--outline-variant`).trim();
+        const cText = cs.getPropertyValue(`--on-surface-variant`).trim();
+
+        const baseEp = unitStaff.reduce((a, s) => a + s.microAssenze.episodi, 0);
+        const series = [
+          Math.max(1, Math.round(baseEp * 0.24)),
+          Math.max(1, Math.round(baseEp * 0.28)),
+          Math.max(1, Math.round(baseEp * 0.22)),
+          Math.max(2, Math.round(baseEp * 0.34)),
+          Math.max(1, Math.round(baseEp * 0.30)),
+          Math.max(2, Math.round(baseEp * 0.38))
+        ];
+        const targetSoglia = series.map(() => Math.round(unitStaff.length * 0.45));
+
+        if (chartMicroAbs) chartMicroAbs.destroy();
+        chartMicroAbs = new Chart(canvas.getContext(`2d`), {
+          type: `bar`,
+          data: {
+            labels: [`Giu`, `Lug`, `Ago`, `Set`, `Ott`, `Nov (parz.)`],
+            datasets: [
+              {
+                label: `Episodi 1–3 gg`,
+                data: series,
+                backgroundColor: cPrimary,
+                borderRadius: 4
+              },
+              {
+                label: `Soglia attenzione reparto`,
+                data: targetSoglia,
+                type: `line`,
+                borderColor: cWarn,
+                borderDash: [5, 5],
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: `top`, labels: { color: cText, boxWidth: 12 } }
+            },
+            scales: {
+              y: { beginAtZero: true, grid: { color: cGrid }, ticks: { color: cText, precision: 0 } },
+              x: { grid: { display: false }, ticks: { color: cText } }
+            }
+          }
+        });
+      }
+    }
+
+    function renderFerieSection() {
+      const unitStaff = appState.staff.filter((s) => s.repartoId === appState.selectedRep);
+      const selF = document.getElementById(`sel-ferie-filter`);
+      const mode = selF ? selF.value : `all`;
+
+      const filtered = unitStaff.filter((s) => {
+        if (mode === `all`) return true;
+        return s.ferie.maxEstivoConsec < 15 || s.ferie.fifoResiduoPrec > 3;
+      });
+
+      const tbody = document.getElementById(`tbody-ferie`);
+      if (tbody) {
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--on-surface-variant);">Tutti gli operatori del reparto rispettano il vincolo dei 15 gg continuativi estivi e i saldi FIFO.</td></tr>`;
+        } else {
+          tbody.innerHTML = filtered.map((s) => {
+            const estOk = s.ferie.maxEstivoConsec >= 15;
+            const fifoWarn = s.ferie.fifoResiduoPrec > 3;
+            const totF = Math.max(1, s.ferie.fifoResiduoPrec + s.ferie.maturatoCorr);
+            const oldW = Math.round((s.ferie.fifoResiduoPrec / totF) * 100);
+            const curW = 100 - oldW;
+            return `<tr>
+              <td><strong>${s.nome}</strong><br><span style="font-size:0.78rem;color:var(--on-surface-variant);">${s.qualifica}</span></td>
+              <td class="tabular">${s.ferie.q1} / ${s.ferie.q2} / ${s.ferie.q3}</td>
+              <td><span class="chip tabular" data-status="${estOk ? `ok` : `alert`}">${s.ferie.maxEstivoConsec} gg ${estOk ? `OK` : `<15gg`}</span></td>
+              <td>
+                <div style="display:grid;gap:4px;">
+                  <span class="tabular" style="font-size:0.8rem;"><strong>${s.ferie.fifoResiduoPrec}g</strong> prec. · ${s.ferie.maturatoCorr}g corr. ${fifoWarn ? `<span class="chip" data-status="warn">Smaltire FIFO</span>` : ``}</span>
+                  <div class="fifo-bar" aria-label="Saldo FIFO">
+                    <div class="fifo-old" style="width:${oldW}%"></div>
+                    <div class="fifo-curr" style="width:${curW}%"></div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                ${fifoWarn ? `<button type="button" class="btn btn-secondary btn-sm" onclick="consumeFifoLeave('${s.id}')">Scarica 2g FIFO</button>` : `<span style="font-size:0.8rem;color:var(--on-surface-variant);">Regolare</span>`}
+              </td>
+            </tr>`;
+          }).join(``);
+        }
+      }
+
+      // Chart quadrimestri
+      const canvas = document.getElementById(`chart-ferie-quad`);
+      if (canvas && typeof Chart !== `undefined`) {
+        const cs = getComputedStyle(document.documentElement);
+        const cPrimary = cs.getPropertyValue(`--data-1`).trim();
+        const cGreen = cs.getPropertyValue(`--data-2`).trim();
+        const cIndigo = cs.getPropertyValue(`--data-4`).trim();
+        const cGrid = cs.getPropertyValue(`--outline-variant`).trim();
+        const cText = cs.getPropertyValue(`--on-surface-variant`).trim();
+
+        const sumQ1 = unitStaff.reduce((a, s) => a + s.ferie.q1, 0);
+        const sumQ2 = unitStaff.reduce((a, s) => a + s.ferie.q2, 0);
+        const sumQ3 = unitStaff.reduce((a, s) => a + s.ferie.q3, 0);
+
+        if (chartFerieQuad) chartFerieQuad.destroy();
+        chartFerieQuad = new Chart(canvas.getContext(`2d`), {
+          type: `bar`,
+          data: {
+            labels: [`Q1 (Feb–Mag)`, `Q2 Estivo (Giu–Set)`, `Q3 (Ott–Gen)`],
+            datasets: [{
+              label: `Giornate ferie pianificate/fruite`,
+              data: [sumQ1, sumQ2, sumQ3],
+              backgroundColor: [cIndigo, cGreen, cPrimary],
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: cGrid }, ticks: { color: cText } },
+              x: { grid: { display: false }, ticks: { color: cText } }
+            }
+          }
+        });
+      }
+    }
+
+    function consumeFifoLeave(empId) {
+      const emp = appState.staff.find((s) => s.id === empId);
+      if (!emp || emp.ferie.fifoResiduoPrec <= 0) return;
+      const take = Math.min(2, emp.ferie.fifoResiduoPrec);
+      emp.ferie.fifoResiduoPrec -= take;
+      emp.ferie.q3 += take;
+      showToast(`Pianificati ${take} giorni in coda Q3 da residuo FIFO anno precedente per ${emp.nome}.`, `ok`);
+      renderDashboard();
+      persistState();
+    }
+
+    function renderTuteleTable() {
+      const unitStaff = appState.staff.filter((s) => s.repartoId === appState.selectedRep && s.tutela !== null);
+      const filtered = unitStaff.filter((s) => appState.tutelaFilter === `all` || s.tutela.tipo === appState.tutelaFilter);
+      const tbody = document.getElementById(`tbody-tutele`);
+      if (!tbody) return;
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--on-surface-variant);">Nessuna tutela attiva corrispondente al filtro selezionato in questa unità.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((s) => {
+        const chipStat = s.tutela.tipo === `INIDONEO` ? `alert` : s.tutela.tipo === `ESONERO_N` ? `warn` : s.tutela.tipo === `L104` ? `info` : `neutral`;
+        return `<tr>
+          <td><strong>${s.nome}</strong></td>
+          <td>${s.qualifica}</td>
+          <td><span class="chip" data-status="${chipStat}">${s.tutela.label}</span></td>
+          <td style="font-size:0.84rem;">${s.tutela.norm}</td>
+          <td style="font-size:0.84rem;">${s.tutela.impact}</td>
+          <td class="tabular" style="font-size:0.84rem;">${s.tutela.scadenza}</td>
+        </tr>`;
+      }).join(``);
+    }
+
+    function renderDashboard() {
+      renderTopKpis();
+      renderHeatmap();
+      renderMicroAbsences();
+      renderFerieSection();
+      renderTuteleTable();
+    }
+
+    // =========================================================================
+    // 6. TABELLONE TURNI H24 INTERATTIVO, VALIDATORE E PUSH MIRATE
+    // =========================================================================
+    function isCertValid(dateStr) {
+      if (!dateStr) return false;
+      return dateStr >= REFERENCE_DATE;
+    }
+
+    function countRosterDiffs() {
+      const unitStaff = appState.staff.filter((s) => s.repartoId === appState.selectedRep);
+      const diffs = [];
+      unitStaff.forEach((s) => {
+        const changedDays = [];
+        for (let d = 0; d < DAYS_IN_MONTH; d++) {
+          if (s.schedDraft[d] !== s.schedPub[d]) {
+            changedDays.push({ day: d + 1, from: s.schedPub[d], to: s.schedDraft[d] });
+          }
+        }
+        if (changedDays.length > 0) {
+          diffs.push({ emp: s, changes: changedDays });
+        }
+      });
+      return diffs;
+    }
+
+    function validateRoster() {
+      const unit = getUnitConfig(appState.selectedRep);
+      const unitStaff = appState.staff.filter((s) => s.repartoId === unit.id);
+      const isDraft = appState.rosterMode === `draft`;
+      const restViolations = [];
+      const hoursViolations = [];
+      const skillMixViolations = [];
+      const cellViolationMap = {}; // key: empId_dayIndex -> message
+
+      function markCell(empId, dIdx, msg) {
+        const key = `${empId}_${dIdx}`;
+        if (!cellViolationMap[key]) cellViolationMap[key] = [];
+        cellViolationMap[key].push(msg);
+      }
+
+      // 1. Riposo 11h, Esoneri, Ore settimanali 48h max
+      unitStaff.forEach((s) => {
+        const sched = isDraft ? s.schedDraft : s.schedPub;
+        for (let d = 0; d < DAYS_IN_MONTH; d++) {
+          const code = sched[d];
+          // Check Esonero Notturno / Inidoneità
+          if (code === `N` && s.tutela && (s.tutela.tipo === `ESONERO_N` || s.tutela.tipo === `INIDONEO`)) {
+            const msg = `${s.nome} (${d + 1} Nov): assegnato turno N ma ha ${s.tutela.label} (Art. 11/15 D.Lgs. 66/2003).`;
+            restViolations.push({ empId: s.id, day: d, msg: msg, sev: `error` });
+            markCell(s.id, d, msg);
+          }
+
+          if (d < DAYS_IN_MONTH - 1) {
+            const next = sched[d + 1];
+            // P -> M = 21:00 to 07:00 = 10h < 11h
+            if (code === `P` && next === `M`) {
+              const msg = `${s.nome} (${d + 1}→${d + 2} Nov): stacco P→M di 10h inferiore alle 11h obbligatorie (Art. 7).`;
+              restViolations.push({ empId: s.id, day: d + 1, msg: msg, sev: `error` });
+              markCell(s.id, d + 1, msg);
+            }
+            // N -> M or N -> P
+            if (code === `N` && (next === `M` || next === `P`)) {
+              const msg = `${s.nome} (${d + 1}→${d + 2} Nov): turno ${next} immediato dopo Notte viola le 11h di riposo (Art. 7).`;
+              restViolations.push({ empId: s.id, day: d + 1, msg: msg, sev: `error` });
+              markCell(s.id, d + 1, msg);
+            }
+          }
+        }
+
+        // Check 48h weekly max across 4 weeks (days 0..6, 7..13, 14..20, 21..27)
+        for (let w = 0; w < 4; w++) {
+          let wHours = 0;
+          const start = w * 7;
+          for (let d = start; d < start + 7; d++) {
+            wHours += SHIFT_HOURS[sched[d]] || 0;
+          }
+          if (wHours > 48) {
+            const msg = `${s.nome} (Sett. ${w + 1}): ${wHours}h lavorate superano il tetto massimo di 48h/sett (Art. 4).`;
+            hoursViolations.push({ empId: s.id, week: w, msg: msg, sev: `error` });
+            for (let d = start; d < start + 7; d++) {
+              if (sched[d] === `M` || sched[d] === `P` || sched[d] === `N`) markCell(s.id, d, msg);
+            }
+          }
+        }
+      });
+
+      // 2. Skill Mix obbligatorio per turno (M / P / N) ogni giorno
+      const dailySkillStatus = [];
+      for (let d = 0; d < DAYS_IN_MONTH; d++) {
+        const dayIssues = [];
+        [`M`, `P`, `N`].forEach((fascia) => {
+          const req = unit.skillMix[fascia];
+          const assigned = unitStaff.filter((s) => (isDraft ? s.schedDraft[d] : s.schedPub[d]) === fascia);
+          const cntMed = assigned.filter((s) => s.qualifica === `Medico Dirigente`).length;
+          const cntInf = assigned.filter((s) => s.qualifica === `Infermiere`).length;
+          const cntOst = assigned.filter((s) => s.qualifica === `Ostetrica`).length;
+          const cntOss = assigned.filter((s) => s.qualifica === `OSS`).length;
+          const cntBlsd = assigned.filter((s) => isCertValid(s.competenze.blsdExp)).length;
+          const cntAcls = assigned.filter((s) => isCertValid(s.competenze.aclsExp)).length;
+
+          const missing = [];
+          if (cntMed < req.med) missing.push(`Medici ${cntMed}/${req.med}`);
+          if (cntInf < req.inf) missing.push(`Inf. ${cntInf}/${req.inf}`);
+          if (cntOst < req.ost) missing.push(`Ost. ${cntOst}/${req.ost}`);
+          if (cntOss < req.oss) missing.push(`OSS ${cntOss}/${req.oss}`);
+          if (cntBlsd < req.blsd) missing.push(`BLSD validi ${cntBlsd}/${req.blsd}`);
+          if (cntAcls < req.acls) missing.push(`ACLS validi ${cntAcls}/${req.acls}`);
+
+          if (missing.length > 0) {
+            dayIssues.push(`${fascia}: ${missing.join(`, `)}`);
+          }
+        });
+        dailySkillStatus.push(dayIssues);
+        if (dayIssues.length > 0) {
+          skillMixViolations.push({ day: d, msg: `${d + 1} Nov: Skill Mix incompleto (${dayIssues.join(` · `)}).` });
+        }
+      }
+
+      return {
+        restViolations,
+        hoursViolations,
+        skillMixViolations,
+        dailySkillStatus,
+        cellViolationMap
+      };
+    }
+
+    function setRosterMode(mode) {
+      appState.rosterMode = mode;
+      const bD = document.getElementById(`state-btn-draft`);
+      const bP = document.getElementById(`state-btn-pub`);
+      const pal = document.getElementById(`shift-palette-bar`);
+      const autoBtn = document.getElementById(`btn-auto-cycle`);
+      if (bD) bD.setAttribute(`aria-pressed`, mode === `draft` ? `true` : `false`);
+      if (bP) bP.setAttribute(`aria-pressed`, mode === `published` ? `true` : `false`);
+      if (pal) pal.style.opacity = mode === `draft` ? `1` : `0.5`;
+      if (autoBtn) autoBtn.disabled = mode !== `draft`;
+      renderRoster();
+      persistState();
+    }
+
+    function setRosterSpan(span) {
+      appState.rosterSpan = span;
+      const bW = document.getElementById(`span-btn-week`);
+      const bM = document.getElementById(`span-btn-month`);
+      const wWrap = document.getElementById(`week-picker-wrap`);
+      if (bW) bW.setAttribute(`aria-pressed`, span === `week` ? `true` : `false`);
+      if (bM) bM.setAttribute(`aria-pressed`, span === `month` ? `true` : `false`);
+      if (wWrap) wWrap.style.display = span === `week` ? `flex` : `none`;
+      renderRoster();
+      persistState();
+    }
+
+    function setBrush(code) {
+      appState.brushCode = code;
+      document.querySelectorAll(`[data-brush]`).forEach((b) => {
+        b.setAttribute(`aria-pressed`, b.getAttribute(`data-brush`) === code ? `true` : `false`);
+      });
+    }
+
+    function onShiftCellClick(empId, dayIndex) {
+      if (appState.rosterMode !== `draft`) {
+        showToast(`Il tabellone è in stato Pubblicato: seleziona "Bozza (Modificabile)" per apportare modifiche.`, `warn`);
+        return;
+      }
+      const emp = appState.staff.find((s) => s.id === empId);
+      if (!emp) return;
+
+      const curr = emp.schedDraft[dayIndex];
+      let nextCode = appState.brushCode;
+      if (nextCode === `CYCLE`) {
+        const idx = SHIFT_EDIT_ORDER.indexOf(curr);
+        nextCode = SHIFT_EDIT_ORDER[(idx + 1) % SHIFT_EDIT_ORDER.length];
+      }
+      emp.schedDraft[dayIndex] = nextCode;
+      renderRoster();
+      persistState();
+    }
+
+    function applyFifthShiftCycle() {
+      if (appState.rosterMode !== `draft`) return;
+      const unitStaff = appState.staff.filter((s) => s.repartoId === appState.selectedRep);
+      unitStaff.forEach((s, idx) => {
+        const noNight = s.tutela && (s.tutela.tipo === `ESONERO_N` || s.tutela.tipo === `INIDONEO` || s.tutela.tipo === `PT`);
+        for (let d = 0; d < DAYS_IN_MONTH; d++) {
+          if (noNight) {
+            const pat = s.tutela.tipo === `PT` ? [`M`, `P`, `R`, `M`, `R`, `R`] : [`M`, `M`, `P`, `P`, `R`, `R`];
+            s.schedDraft[d] = pat[(d + idx) % pat.length];
+          } else {
+            s.schedDraft[d] = SHIFT_CYCLE_5[(d + (idx % 5)) % 5];
+          }
+        }
+      });
+      showToast(`Ciclo in quinta M-P-N-S-R (rispettoso degli esoneri notturni) rigenerato in Bozza.`, `ok`);
+      renderRoster();
+      persistState();
+    }
+
+    function togglePushDrawer(force) {
+      const drawer = document.getElementById(`push-drawer`);
+      if (!drawer) return;
+      const shouldOpen = typeof force === `boolean` ? force : drawer.classList.contains(`hidden-view`);
+      if (!shouldOpen) {
+        drawer.classList.add(`hidden-view`);
+        return;
+      }
+      const diffs = countRosterDiffs();
+      const listEl = document.getElementById(`push-preview-list`);
+      const btnConfirm = document.getElementById(`btn-confirm-publish`);
+      if (listEl) {
+        if (!diffs.length) {
+          listEl.innerHTML = `<div class="push-row"><span>Nessuna modifica pendente tra Bozza e Pubblicato per questo reparto.</span></div>`;
+          if (btnConfirm) btnConfirm.disabled = true;
+        } else {
+          if (btnConfirm) btnConfirm.disabled = false;
+          listEl.innerHTML = diffs.map((item) => {
+            const previewText = item.changes.slice(0, 4).map((c) => `${c.day} Nov: ${c.from}→${c.to}`).join(`, `) + (item.changes.length > 4 ? ` (+${item.changes.length - 4})` : ``);
+            return `<div class="push-row">
+              <div>
+                <strong>${item.emp.nome}</strong> <span class="chip" data-status="info">${item.emp.qualifica}</span>
+                <div style="font-size:0.84rem;color:var(--on-surface-variant);">Notifica Push: "Turni aggiornati (${previewText})"</div>
+              </div>
+              <span class="chip" data-status="warn">${item.changes.length} variaz.</span>
+            </div>`;
+          }).join(``);
+        }
+      }
+      drawer.classList.remove(`hidden-view`);
+    }
+
+    function confirmPublishAndPush() {
+      const unit = getUnitConfig(appState.selectedRep);
+      const diffs = countRosterDiffs();
+      if (!diffs.length) return;
+
+      diffs.forEach((item) => {
+        item.emp.schedPub = item.emp.schedDraft.slice();
+      });
+
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, `0`);
+      const mm = String(now.getMinutes()).padStart(2, `0`);
+      appState.pushLog.unshift({
+        ts: `16/11/2026 ${hh}:${mm}`,
+        reparto: unit.nome,
+        destinatari: diffs.length,
+        testo: `Pubblicate modifiche turni e inviate ${diffs.length} notifiche push mirate (${diffs.map((d) => d.emp.nome.split(` `).slice(-1)[0]).join(`, `)}).`
+      });
+
+      togglePushDrawer(false);
+      appState.rosterMode = `published`;
+      setRosterMode(`published`);
+      showToast(`Tabellone pubblicato! Inviate ${diffs.length} notifiche push mirate ai soli operatori con turni variati.`, `ok`);
+      persistState();
+    }
+
+    function renderRoster() {
+      const selWeek = document.getElementById(`sel-week`);
+      if (selWeek) appState.selectedWeek = Number(selWeek.value);
+
+      const unit = getUnitConfig(appState.selectedRep);
+      const qualFilterEl = document.getElementById(`sel-qualifica`);
+      const qualFilter = qualFilterEl ? qualFilterEl.value : `all`;
+
+      const diffs = countRosterDiffs();
+      const diffCountEl = document.getElementById(`pending-diff-count`);
+      const tabBadge = document.getElementById(`tab-draft-badge`);
+      if (diffCountEl) diffCountEl.textContent = String(diffs.length);
+      if (tabBadge) {
+        tabBadge.textContent = diffs.length > 0 ? `Bozza (${diffs.length})` : `Allineato`;
+        tabBadge.setAttribute(`data-status`, diffs.length > 0 ? `warn` : `ok`);
+      }
+
+      const startDay = appState.rosterSpan === `week` ? appState.selectedWeek * 7 : 0;
+      const endDay = appState.rosterSpan === `week` ? Math.min(DAYS_IN_MONTH, startDay + 7) : DAYS_IN_MONTH;
+
+      const validation = validateRoster();
+      const isDraft = appState.rosterMode === `draft`;
+      const unitStaff = appState.staff.filter((s) => s.repartoId === unit.id && (qualFilter === `all` || s.qualifica === qualFilter));
+
+      // Group by qualification
+      const qualsOrder = [`Medico Dirigente`, `Infermiere`, `Ostetrica`, `OSS`];
+      let html = `<table class="roster-table"><thead><tr><th class="sticky-col">Operatore / Ore Sett.</th>`;
+      for (let d = startDay; d < endDay; d++) {
+        const dow = DAY_NAMES[d % 7];
+        const isWk = (d % 7 === 0 || d % 7 === 6);
+        html += `<th class="${isWk ? `weekend-col` : ``}">${d + 1}<br>${dow}</th>`;
+      }
+      html += `<th>Tot Ore</th></tr></thead><tbody>`;
+
+      qualsOrder.forEach((qName) => {
+        const groupMembers = unitStaff.filter((s) => s.qualifica === qName);
+        if (!groupMembers.length) return;
+        html += `<tr class="qual-group-row"><td colspan="${(endDay - startDay) + 2}">${qName} (${groupMembers.length})</td></tr>`;
+
+        groupMembers.forEach((s) => {
+          const sched = isDraft ? s.schedDraft : s.schedPub;
+          let spanHours = 0;
+          for (let d = startDay; d < endDay; d++) spanHours += SHIFT_HOURS[sched[d]] || 0;
+          const avgWk = appState.rosterSpan === `week` ? spanHours : Math.round(spanHours / 4.28);
+
+          html += `<tr><td class="sticky-col">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;">
+              <strong>${s.nome}</strong>
+              ${s.tutela ? `<span class="chip" data-status="${s.tutela.tipo === `INIDONEO` ? `alert` : `warn`}" style="font-size:0.68rem;padding:1px 6px;">${s.tutela.tipo === `ESONERO_N` ? `No Notte` : s.tutela.label}</span>` : ``}
+            </div>
+            <span style="font-size:0.75rem;color:var(--on-surface-variant);">Contr. ${s.oreContratto}h · ${isCertValid(s.competenze.blsdExp) ? `BLSD OK` : `BLSD Scad.`}</span>
+          </td>`;
+
+          for (let d = startDay; d < endDay; d++) {
+            const code = sched[d];
+            const isWk = (d % 7 === 0 || d % 7 === 6);
+            const isMod = isDraft && s.schedDraft[d] !== s.schedPub[d];
+            const vMsgs = validation.cellViolationMap[`${s.id}_${d}`];
+            const hasV = Boolean(vMsgs && vMsgs.length);
+            const titleTxt = hasV ? vMsgs.join(` | `) : (isMod ? `Modificato (era ${s.schedPub[d]})` : `${d + 1} Nov: ${code}`);
+            html += `<td class="${isWk ? `weekend-col` : ``}">
+              <button type="button" class="shift-btn ${isMod ? `is-modified` : ``} ${hasV ? `has-violation` : ``}" data-code="${code}" ${isDraft ? `` : `disabled`} title="${titleTxt}" onclick="onShiftCellClick('${s.id}', ${d})">
+                ${code}
+                ${hasV ? `<span class="viol-dot" aria-hidden="true"></span>` : ``}
+              </button>
+            </td>`;
+          }
+          html += `<td class="tabular" style="font-weight:700;color:${avgWk > 48 ? `var(--error)` : `var(--on-surface)`};">${spanHours}h</td></tr>`;
+        });
+      });
+
+      // Skill Mix Bottom Summary Row
+      html += `<tr class="skillmix-row"><td class="sticky-col">Verifica Skill Mix H24 (M/P/N)</td>`;
+      for (let d = startDay; d < endDay; d++) {
+        const issues = validation.dailySkillStatus[d];
+        const ok = issues.length === 0;
+        html += `<td title="${ok ? `Skill Mix completo` : issues.join(` | `)}">
+          <span class="chip" data-status="${ok ? `ok` : `alert`}" style="font-size:0.68rem;padding:1px 6px;">${ok ? `OK` : `${issues.length}!`}</span>
+        </td>`;
+      }
+      html += `<td>—</td></tr>`;
+      html += `</tbody></table>`;
+
+      const wrap = document.getElementById(`roster-grid-wrap`);
+      if (wrap) wrap.innerHTML = html;
+
+      // Render Validator Summary
+      const rCnt = validation.restViolations.length;
+      const hCnt = validation.hoursViolations.length;
+      const sCnt = validation.skillMixViolations.length;
+      const totalV = rCnt + hCnt + sCnt;
+
+      const elR = document.getElementById(`val-rest-count`);
+      const elH = document.getElementById(`val-48h-count`);
+      const elS = document.getElementById(`val-skill-count`);
+      const cardR = document.getElementById(`val-card-rest`);
+      const cardH = document.getElementById(`val-card-48h`);
+      const cardS = document.getElementById(`val-card-skill`);
+      const sumChip = document.getElementById(`validator-summary-chip`);
+
+      if (elR) elR.textContent = String(rCnt);
+      if (elH) elH.textContent = String(hCnt);
+      if (elS) elS.textContent = String(sCnt);
+      if (cardR) cardR.setAttribute(`data-status`, rCnt > 0 ? `alert` : `ok`);
+      if (cardH) cardH.setAttribute(`data-status`, hCnt > 0 ? `alert` : `ok`);
+      if (cardS) cardS.setAttribute(`data-status`, sCnt > 0 ? `warn` : `ok`);
+      if (sumChip) {
+        sumChip.textContent = totalV === 0 ? `Tutti i vincoli conformi` : `${totalV} anomalie rilevate`;
+        sumChip.setAttribute(`data-status`, totalV === 0 ? `ok` : `alert`);
+      }
+
+      const vListEl = document.getElementById(`validator-list`);
+      if (vListEl) {
+        const allItems = [
+          ...validation.restViolations.map((v) => ({ ...v, cat: `Riposo 11h / Esoneri`, fixable: true })),
+          ...validation.hoursViolations.map((v) => ({ ...v, cat: `Tetto 48h`, fixable: false })),
+          ...validation.skillMixViolations.map((v) => ({ ...v, cat: `Skill Mix`, sev: `warn`, fixable: false }))
+        ];
+        if (!allItems.length) {
+          vListEl.innerHTML = `<div class="callout" data-status="ok">Nessuna violazione normativa o carenza di Skill Mix nel tabellone corrente.</div>`;
+        } else {
+          vListEl.innerHTML = allItems.slice(0, 12).map((item) => `
+            <div class="viol-item" data-severity="${item.sev || `error`}">
+              <div>
+                <span class="chip" data-status="${item.sev === `warn` ? `warn` : `alert`}" style="margin-right:6px;">${item.cat}</span>
+                <span>${item.msg}</span>
+              </div>
+              ${item.fixable && isDraft ? `<button type="button" class="btn btn-secondary btn-sm" onclick="autoFixViolation('${item.empId}', ${item.day})">Correggi in R</button>` : ``}
+            </div>
+          `).join(``);
+        }
+      }
+
+      // Render Push Log
+      const logEl = document.getElementById(`push-log-list`);
+      if (logEl) {
+        logEl.innerHTML = appState.pushLog.map((l) => `
+          <div class="viol-item" data-severity="info" style="border-left-color:var(--primary);">
+            <div><strong>${l.ts} · ${l.reparto}</strong> — ${l.testo}</div>
+            <span class="chip" data-status="info">${l.destinatari} push</span>
+          </div>
+        `).join(``);
+      }
+    }
+
+    function autoFixViolation(empId, dayIndex) {
+      const emp = appState.staff.find((s) => s.id === empId);
+      if (!emp) return;
+      emp.schedDraft[dayIndex] = `R`;
+      showToast(`Turno del ${dayIndex + 1} Nov per ${emp.nome} convertito in Riposo (R) per ripristinare conformità.`, `ok`);
+      renderRoster();
+      persistState();
+    }
+
+    // =========================================================================
+    // 7. MAPPATURA COMPETENZE (BLSD/ACLS) & PERFORMANCE ANNUALI
+    // =========================================================================
+    function daysUntil(dateStr) {
+      if (!dateStr) return null;
+      const target = new Date(dateStr + `T00:00:00`);
+      const ref = new Date(REFERENCE_DATE + `T00:00:00`);
+      return Math.round((target - ref) / (1000 * 60 * 60 * 24));
+    }
+
+    function getCertBadge(dateStr, label) {
+      if (!dateStr) return `<span class="chip" data-status="neutral">N/A</span>`;
+      const diff = daysUntil(dateStr);
+      if (diff < 0) return `<span class="chip" data-status="alert">${label} Scaduto (${dateStr})</span>`;
+      if (diff <= 60) return `<span class="chip" data-status="warn">${label} -${diff}gg (${dateStr})</span>`;
+      return `<span class="chip" data-status="ok">${label} OK (${dateStr})</span>`;
+    }
+
+    function renewCertificates(empId) {
+      const emp = appState.staff.find((s) => s.id === empId);
+      if (!emp) return;
+      emp.competenze.blsdExp = `2028-11-16`;
+      if (emp.competenze.aclsExp) emp.competenze.aclsExp = `2028-11-16`;
+      showToast(`Attestati BLSD/ACLS rinnovati fino al 16/11/2028 per ${emp.nome}.`, `ok`);
+      renderHcm();
+      persistState();
+    }
+
+    function computeEvalWeightedScore(emp) {
+      let sum = 0;
+      EVAL_ITEMS.forEach((it) => {
+        const val = emp.eval.scores[it.id] || 3;
+        sum += val * it.peso;
+      });
+      return sum;
+    }
+
+    function getEvalTier(score) {
+      if (score >= 4.5) return { label: `Eccellente`, status: `ok` };
+      if (score >= 3.8) return { label: `Sopra le attese`, status: `ok` };
+      if (score >= 3.0) return { label: `In linea`, status: `info` };
+      return { label: `Da consolidare`, status: `warn` };
+    }
+
+    function selectEvalEmployee(empId) {
+      appState.selectedEvalEmpId = empId;
+      renderEvaluationPanel();
+      persistState();
+    }
+
+    function setEvalItemScore(itemId, score) {
+      const emp = appState.staff.find((s) => s.id === appState.selectedEvalEmpId);
+      if (!emp) return;
+      emp.eval.scores[itemId] = score;
+      emp.eval.stato = `bozza`;
+      renderEvaluationPanel();
+      persistState();
+    }
+
+    function onEvalNotesInput(val) {
+      const emp = appState.staff.find((s) => s.id === appState.selectedEvalEmpId);
+      if (!emp) return;
+      emp.eval.notes = val;
+      emp.eval.stato = `bozza`;
+      const savedLbl = document.getElementById(`eval-last-saved`);
+      if (savedLbl) savedLbl.textContent = `Modifiche in corso…`;
+      persistState();
+    }
+
+    function saveEvaluation(stato) {
+      const emp = appState.staff.find((s) => s.id === appState.selectedEvalEmpId);
+      if (!emp) return;
+      emp.eval.stato = stato;
+      emp.eval.updatedAt = REFERENCE_DATE;
+      renderEvaluationPanel();
+      showToast(`Scheda valutazione annuale di ${emp.nome} salvata come "${stato === `confermata` ? `Confermata` : `Bozza`}".`, `ok`);
+      persistState();
+    }
+
+    function renderHcm() {
+      const unitStaff = appState.staff.filter((s) => s.repartoId === appState.selectedRep);
+      const selF = document.getElementById(`sel-cert-filter`);
+      const mode = selF ? selF.value : `all`;
+
+      // Global cert counts for the unit
+      let expired = 0;
+      let soon = 0;
+      let validCount = 0;
+      unitStaff.forEach((s) => {
+        const dB = daysUntil(s.competenze.blsdExp);
+        const dA = daysUntil(s.competenze.aclsExp);
+        if ((dB !== null && dB < 0) || (dA !== null && dA < 0)) expired++;
+        else if ((dB !== null && dB <= 60) || (dA !== null && dA <= 60)) soon++;
+        else validCount++;
+      });
+
+      const elExp = document.getElementById(`cert-expired-val`);
+      const elSoon = document.getElementById(`cert-soon-val`);
+      const elOk = document.getElementById(`cert-ok-val`);
+      const tabCert = document.getElementById(`tab-cert-badge`);
+      if (elExp) elExp.textContent = String(expired);
+      if (elSoon) elSoon.textContent = String(soon);
+      if (elOk) elOk.textContent = `${unitStaff.length ? Math.round((validCount / unitStaff.length) * 100) : 0}%`;
+      if (tabCert) {
+        const alerts = expired + soon;
+        tabCert.textContent = alerts > 0 ? `${alerts} avvisi` : `OK`;
+        tabCert.setAttribute(`data-status`, alerts > 0 ? `alert` : `ok`);
+      }
+
+      const filtered = unitStaff.filter((s) => {
+        const dB = daysUntil(s.competenze.blsdExp);
+        const dA = daysUntil(s.competenze.aclsExp);
+        const hasAlert = (dB !== null && dB <= 60) || (dA !== null && dA <= 60);
+        if (mode === `alert`) return hasAlert;
+        if (mode === `ok`) return !hasAlert;
+        return true;
+      });
+
+      const tbody = document.getElementById(`tbody-competenze`);
+      if (tbody) {
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--on-surface-variant);">Nessun operatore corrisponde al filtro certificazioni selezionato.</td></tr>`;
+        } else {
+          tbody.innerHTML = filtered.map((s) => {
+            const dB = daysUntil(s.competenze.blsdExp);
+            const dA = daysUntil(s.competenze.aclsExp);
+            const needsRenew = (dB !== null && dB <= 60) || (dA !== null && dA <= 60);
+            return `<tr>
+              <td><strong>${s.nome}</strong></td>
+              <td>${s.qualifica}</td>
+              <td>${getCertBadge(s.competenze.blsdExp, `BLSD`)}</td>
+              <td>${getCertBadge(s.competenze.aclsExp, `ACLS`)}</td>
+              <td>${s.competenze.specialistiche.map((sp) => `<span class="chip" data-status="info" style="margin:2px;">${sp}</span>`).join(``)}</td>
+              <td style="font-size:0.84rem;">${s.competenze.visitaNotturna}</td>
+              <td>${needsRenew ? `<button type="button" class="btn btn-secondary btn-sm" onclick="renewCertificates('${s.id}')">Rinnova +24m</button>` : `<span style="font-size:0.8rem;color:var(--on-surface-variant);">Aggiornato</span>`}</td>
+            </tr>`;
+          }).join(``);
+        }
+      }
+
+      renderEvaluationPanel();
+    }
+
+    function renderEvaluationPanel() {
+      const unitStaff = appState.staff.filter((s) => s.repartoId === appState.selectedRep);
+      if (!unitStaff.length) return;
+      if (!unitStaff.some((s) => s.id === appState.selectedEvalEmpId)) {
+        appState.selectedEvalEmpId = unitStaff[0].id;
+      }
+
+      const listEl = document.getElementById(`eval-staff-list`);
+      if (listEl) {
+        listEl.innerHTML = unitStaff.map((s) => {
+          const score = computeEvalWeightedScore(s).toFixed(2);
+          const isCurr = s.id === appState.selectedEvalEmpId;
+          return `<button type="button" class="staff-pick" aria-current="${isCurr ? `true` : `false`}" onclick="selectEvalEmployee('${s.id}')">
+            <div>
+              <strong>${s.nome}</strong>
+              <div style="font-size:0.78rem;color:var(--on-surface-variant);">${s.qualifica} · Media ${score}</div>
+            </div>
+            <span class="chip" data-status="${s.eval.stato === `confermata` ? `ok` : `warn`}">${s.eval.stato === `confermata` ? `Confermata` : `Bozza`}</span>
+          </button>`;
+        }).join(``);
+      }
+
+      const emp = unitStaff.find((s) => s.id === appState.selectedEvalEmpId) || unitStaff[0];
+      const total = computeEvalWeightedScore(emp);
+      const tier = getEvalTier(total);
+
+      const elRole = document.getElementById(`eval-emp-role`);
+      const elName = document.getElementById(`eval-emp-name`);
+      const elScore = document.getElementById(`eval-total-score`);
+      const elTier = document.getElementById(`eval-tier-label`);
+      const elCard = document.getElementById(`eval-score-card`);
+      const elBadge = document.getElementById(`eval-status-badge`);
+      const elNotes = document.getElementById(`eval-notes`);
+      const elSaved = document.getElementById(`eval-last-saved`);
+
+      if (elRole) elRole.textContent = `${emp.qualifica} · Contratto ${emp.oreContratto}h`;
+      if (elName) elName.textContent = emp.nome;
+      if (elScore) elScore.textContent = `${total.toFixed(2)} / 5`;
+      if (elTier) {
+        elTier.textContent = tier.label;
+        elTier.setAttribute(`data-status`, tier.status);
+      }
+      if (elCard) elCard.setAttribute(`data-status`, tier.status);
+      if (elBadge) {
+        elBadge.textContent = emp.eval.stato === `confermata` ? `Valutazione Confermata` : `In Bozza`;
+        elBadge.setAttribute(`data-status`, emp.eval.stato === `confermata` ? `ok` : `warn`);
+      }
+      if (elNotes && elNotes.value !== emp.eval.notes) elNotes.value = emp.eval.notes;
+      if (elSaved) elSaved.textContent = `Ultimo aggiornamento: ${emp.eval.updatedAt}`;
+
+      const itemsContainer = document.getElementById(`eval-items-container`);
+      if (itemsContainer) {
+        itemsContainer.innerHTML = EVAL_ITEMS.map((it) => {
+          const val = emp.eval.scores[it.id] || 3;
+          let btns = ``;
+          for (let r = 1; r <= 5; r++) {
+            btns += `<button type="button" class="rate-btn" aria-pressed="${val === r ? `true` : `false`}" onclick="setEvalItemScore('${it.id}', ${r})">${r}</button>`;
+          }
+          return `<div class="eval-item-row" style="background:var(--background);">
+            <div>
+              <strong>${it.titolo}</strong> <span class="chip" data-status="neutral">Peso ${Math.round(it.peso * 100)}%</span>
+              <div style="font-size:0.84rem;color:var(--on-surface-variant);margin-top:2px;">${it.desc}</div>
+            </div>
+            <div class="rating-group" role="group" aria-label="Punteggio ${it.titolo}">${btns}</div>
+          </div>`;
+        }).join(``);
+      }
+    }
+
+    // =========================================================================
+    // 8. EXPORT CSV & RIPRISTINO DATI (INLINE 2-STEP)
+    // =========================================================================
+    function exportCsvReport() {
+      const unit = getUnitConfig(appState.selectedRep);
+      const unitStaff = appState.staff.filter((s) => s.repartoId === unit.id);
+      const headers = [`Reparto`, `Operatore`, `Qualifica`, `OreContratto`, `Tutela`, `EpisodiMicroAss`, `MaxEstivoGG`, `ResiduoFIFO`, `BLSD`, `ACLS`, `PunteggioEval`];
+      const rows = unitStaff.map((s) => [
+        `"${unit.nome}"`,
+        `"${s.nome}"`,
+        `"${s.qualifica}"`,
+        s.oreContratto,
+        `"${s.tutela ? s.tutela.label : `Nessuna`}"`,
+        s.microAssenze.episodi,
+        s.ferie.maxEstivoConsec,
+        s.ferie.fifoResiduoPrec,
+        s.competenze.blsdExp || `N/A`,
+        s.competenze.aclsExp || `N/A`,
+        computeEvalWeightedScore(s).toFixed(2)
+      ].join(`,`));
+      const csv = [headers.join(`,`), ...rows].join(`\n`);
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === `function`) {
+        window.notebookAppApi.triggerFileDownload({
+          content: csv,
+          contentType: `text/csv`,
+          encoding: `UTF-8`,
+          filename: `turni-hcm-${unit.id}.csv`
+        });
+        showToast(`Esportazione CSV completata per ${unit.nome}.`, `ok`);
+      } else {
+        const blob = new Blob([csv], { type: `text/csv;charset=utf-8;` });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement(`a`);
+        a.href = url;
+        a.download = `turni-hcm-${unit.id}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+
+    function handleResetState(btn) {
+      if (btn.dataset.armed !== `true`) {
+        btn.dataset.armed = `true`;
+        btn.textContent = `Conferma ripristino`;
+        setTimeout(() => {
+          if (btn && btn.dataset.armed === `true`) {
+            btn.dataset.armed = `false`;
+            btn.innerHTML = `<i data-lucide="rotate-ccw" aria-hidden="true" style="width:15px;height:15px;"></i> Ripristina dati`;
+            if (typeof lucide !== `undefined`) lucide.createIcons();
+          }
+        }, 4000);
+        return;
+      }
+      btn.dataset.armed = `false`;
+      btn.innerHTML = `<i data-lucide="rotate-ccw" aria-hidden="true" style="width:15px;height:15px;"></i> Ripristina dati`;
+      appState = createDefaultState();
+      populateHierarchySelectors();
+      setRosterMode(appState.rosterMode);
+      setRosterSpan(appState.rosterSpan);
+      switchView(appState.activeView);
+      if (typeof lucide !== `undefined`) lucide.createIcons();
+      showToast(`Dati dimostrativi ripristinati allo stato iniziale.`, `info`);
+      persistState();
+    }
+
+    // =========================================================================
+    // 9. INIZIALIZZAZIONE
+    // =========================================================================
+    function renderAll() {
+      renderDashboard();
+      renderRoster();
+      renderHcm();
+    }
+
+    async function initApp() {
+      try {
+        if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
+          const saved = await window.notebookAppApi.getAppState();
+          if (saved && Array.isArray(saved.staff) && saved.staff.length > 0) {
+            appState = saved;
+          }
+        }
+      } catch (err) {
+        // Fallback stato iniziale
+      }
+
+      populateHierarchySelectors();
+      setHeatmapMode(appState.heatmapMode || `aziendale`);
+      setTutelaFilter(appState.tutelaFilter || `all`);
+      setRosterMode(appState.rosterMode || `draft`);
+      setRosterSpan(appState.rosterSpan || `week`);
+      switchView(appState.activeView || `dashboard`);
+
+      if (typeof lucide !== `undefined`) {
+        lucide.createIcons();
+      }
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
+        window.notebookAppApi.notifyAppReady();
+      }
+    }
+
+    document.addEventListener(`DOMContentLoaded`, initApp);
+  </script>
+</body>
+</html>
