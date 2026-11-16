@@ -1,0 +1,3222 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="artifact-type" content="dashboard">
+  <meta name="design-style" content="vitals">
+  <title>Gestionale Turni &amp; HCM Sanità — Pianificazione H24 e Analisi Organico</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+
+      /* 1. Vitals Base Palette */
+      --background: #ffffff;
+      --surface-container-low: #f1f7f8;
+      --surface-container: #e3f1f3;
+      --surface-container-high: #d5e9ec;
+
+      /* Text */
+      --on-surface: #1b2b33;
+      --on-surface-variant: #46585f;
+
+      /* Rules */
+      --outline: #7b9198;
+      --outline-variant: #d5e3e5;
+
+      /* Accents (Tonalità Blu / Ottanio Sanitario) */
+      --primary: #0f7c8a;
+      --primary-hover: #0b626e;
+      --on-primary: #ffffff;
+      --primary-container: #e3f1f3;
+      --on-primary-container: #0a5560;
+      --secondary: #1d5e3a;
+      --tertiary: #2e7d4f;
+      --error: #b3261e;
+      --on-error: #ffffff;
+
+      /* Semantic & Heatmap Status Badges (Rosso, Giallo, Verde, Blu) */
+      --positive: #2e7d4f;
+      --warning: #b86e00;
+      --status-red-bg: #fce8e6;
+      --status-red-fg: #9c1d16;
+      --status-red-border: #e5a39e;
+      --status-yellow-bg: #fef4db;
+      --status-yellow-fg: #854d00;
+      --status-yellow-border: #ebd08c;
+      --status-green-bg: #e4f3ea;
+      --status-green-fg: #1d5e3a;
+      --status-green-border: #9fd0b3;
+      --status-blue-bg: #e3eff9;
+      --status-blue-fg: #134b7a;
+      --status-blue-border: #9bc2e5;
+
+      /* Shift Cell Semantic Tokens */
+      --shift-m-bg: #e3eff9;
+      --shift-m-fg: #134b7a;
+      --shift-p-bg: #e3f1f3;
+      --shift-p-fg: #0a5560;
+      --shift-n-bg: #e9e8f7;
+      --shift-n-fg: #393b85;
+      --shift-s-bg: #f1f5f7;
+      --shift-s-fg: #46585f;
+      --shift-r-bg: #eef7f1;
+      --shift-r-fg: #1d5e3a;
+      --shift-pd-bg: #fef4db;
+      --shift-pd-fg: #854d00;
+      --shift-fe-bg: #e4f3ea;
+      --shift-fe-fg: #1d5e3a;
+      --shift-ma-bg: #fce8e6;
+      --shift-ma-fg: #9c1d16;
+
+      /* Data series */
+      --data-1: #0f7c8a;
+      --data-2: #2e7d4f;
+      --data-3: #b86e00;
+      --data-4: #1e5fa8;
+      --data-context: #b8c7ca;
+
+      /* Fonts */
+      --font-headline: 'Figtree', sans-serif;
+      --font-body: 'Atkinson Hyperlegible', sans-serif;
+      --font-label: 'Figtree', sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+
+      /* Shape */
+      --rounded: 0.625rem;
+      --rounded-lg: 0.875rem;
+      --rounded-full: 9999px;
+
+      /* Style effects */
+      --top-bar: 6px solid var(--primary);
+      --status-bar-width: 4px;
+      --card-border: 1px solid var(--outline-variant);
+      --card-lift: 0 1px 2px rgb(27 43 51 / 0.05), 0 6px 16px rgb(27 43 51 / 0.05);
+      --focus: var(--primary);
+
+      /* Type scale (Dashboard) */
+      --display-size: clamp(1.5rem, 1.25rem + 0.9vw, 2rem);
+      --headline-size: clamp(1.1875rem, 1.05rem + 0.45vw, 1.375rem);
+      --subhead-size: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --body-size: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+      --label-size: 0.75rem;
+
+      /* Spacing scale */
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.25rem;
+
+      /* Motion */
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      overflow-x: clip;
+      margin: 0;
+      padding: 0;
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      font-size: var(--body-size);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header { position: static !important; }
+
+    .app-shell {
+      border-top: var(--top-bar);
+      min-height: 100vh;
+    }
+
+    .page-grid {
+      display: grid;
+      gap: var(--space-lg);
+      padding: var(--space-lg);
+      max-width: 1380px;
+      margin: 0 auto;
+      overflow-x: clip;
+    }
+    .page-grid * { min-width: 0; }
+
+    /* Focus rings */
+    :focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    /* Header Block */
+    .app-header {
+      background: var(--background);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: var(--space-lg);
+    }
+
+    .header-identity {
+      flex: 1 1 360px;
+    }
+
+    .kicker {
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: var(--label-size);
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .title {
+      font-family: var(--font-headline);
+      font-weight: 800;
+      font-size: var(--display-size);
+      letter-spacing: -0.015em;
+      line-height: 1.1;
+      color: var(--on-surface);
+      margin: 0;
+    }
+
+    .lede {
+      font-size: 0.98rem;
+      line-height: 1.55;
+      color: var(--on-surface-variant);
+      max-width: 68ch;
+      margin: var(--space-xs) 0 0 0;
+    }
+
+    .header-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: var(--space-sm);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .control-label {
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: var(--label-size);
+      color: var(--on-surface-variant);
+    }
+
+    select, input[type="text"], input[type="password"], input[type="number"], textarea {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--on-surface);
+      background-color: var(--background);
+      border: 1px solid var(--outline);
+      border-radius: var(--rounded);
+      padding: 0.55rem 0.75rem;
+      min-height: 44px;
+      transition: border-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    select {
+      padding-right: 2rem;
+    }
+    select:focus, input:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: 0.9rem;
+      min-height: 44px;
+      padding: 0.55rem 1.05rem;
+      border-radius: var(--rounded);
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color var(--dur-micro) var(--ease-out), color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background-color: var(--primary);
+      color: var(--on-primary);
+    }
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+    .btn-secondary {
+      background-color: var(--background);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background-color: var(--surface-container-low);
+    }
+    .btn-ghost {
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      border-color: var(--outline-variant);
+    }
+    .btn-ghost:hover:not(:disabled) {
+      background-color: var(--surface-container);
+    }
+    .btn-danger-outline {
+      background-color: var(--background);
+      color: var(--error);
+      border-color: var(--status-red-border);
+    }
+    .btn-danger-outline:hover:not(:disabled) {
+      background-color: var(--status-red-bg);
+    }
+    .btn-sm {
+      min-height: 36px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.82rem;
+    }
+
+    /* Navigation Tabs */
+    .tab-bar {
+      background: var(--background);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: 0 var(--space-md);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 0.9rem 0.9rem;
+      min-height: 48px;
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: 0.92rem;
+      color: var(--on-surface-variant);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--dur-micro) var(--ease-out), background-color var(--dur-micro) var(--ease-out);
+    }
+    .tab-btn:hover {
+      color: var(--on-surface);
+      background-color: var(--surface-container-low);
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-count {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.1rem 0.45rem;
+      border-radius: var(--rounded-full);
+      background-color: var(--surface-container);
+      color: var(--on-primary-container);
+    }
+    .tab-count.has-alert {
+      background-color: var(--status-yellow-bg);
+      color: var(--status-yellow-fg);
+    }
+
+    /* Tab Panels */
+    .tab-panel {
+      display: none;
+      gap: var(--space-lg);
+      animation: fadeSlideIn var(--dur-short) var(--ease-out);
+    }
+    .tab-panel.active {
+      display: grid;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* KPI Row & Status Accent Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+      gap: var(--space-md);
+    }
+
+    .status-card {
+      background: var(--background);
+      border: var(--card-border);
+      border-left: var(--status-bar-width) solid var(--primary);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md) var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      transition: box-shadow var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+    }
+    .status-card.interactive {
+      cursor: pointer;
+    }
+    .status-card.interactive:hover {
+      box-shadow: var(--card-lift);
+      transform: translateY(-1px);
+    }
+    .status-card[data-status="ok"] { border-left-color: var(--tertiary); }
+    .status-card[data-status="warn"] { border-left-color: var(--warning); }
+    .status-card[data-status="alert"] { border-left-color: var(--error); }
+    .status-card[data-status="blue"] { border-left-color: var(--data-4); }
+
+    .kpi-label {
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: var(--label-size);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+    .kpi-value {
+      font-family: var(--font-headline);
+      font-weight: 800;
+      font-size: clamp(1.5rem, 1.3rem + 0.8vw, 2rem);
+      line-height: 1.15;
+      font-variant-numeric: tabular-nums;
+      color: var(--on-surface);
+    }
+    .kpi-caption {
+      font-size: 0.84rem;
+      color: var(--on-surface-variant);
+      margin-top: 0.1rem;
+    }
+    .kpi-caption.ok { color: var(--secondary); font-weight: 700; }
+    .kpi-caption.alert { color: var(--error); font-weight: 700; }
+    .kpi-caption.warn { color: var(--status-yellow-fg); font-weight: 700; }
+
+    /* Content Panels */
+    .panel {
+      background: var(--background);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .panel-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: 1px solid var(--outline-variant);
+    }
+
+    .panel-title {
+      font-family: var(--font-headline);
+      font-weight: 700;
+      font-size: var(--headline-size);
+      margin: 0;
+      color: var(--on-surface);
+    }
+    .panel-subtitle {
+      font-size: 0.88rem;
+      color: var(--on-surface-variant);
+      margin: 0.2rem 0 0 0;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: var(--space-sm);
+    }
+
+    /* Chips & Semantic Badges */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-family: var(--font-label);
+      font-weight: 600;
+      font-size: var(--label-size);
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--rounded-full);
+      background: var(--status-green-bg);
+      color: var(--status-green-fg);
+      border: 1px solid var(--status-green-border);
+      white-space: nowrap;
+    }
+    .chip[data-status="info"] {
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      border-color: var(--surface-container-high);
+    }
+    .chip[data-status="warn"] {
+      background: var(--status-yellow-bg);
+      color: var(--status-yellow-fg);
+      border-color: var(--status-yellow-border);
+    }
+    .chip[data-status="alert"] {
+      background: var(--status-red-bg);
+      color: var(--status-red-fg);
+      border-color: var(--status-red-border);
+    }
+    .chip[data-status="blue"] {
+      background: var(--status-blue-bg);
+      color: var(--status-blue-fg);
+      border-color: var(--status-blue-border);
+    }
+
+    /* Callout banner */
+    .callout {
+      background: var(--primary-container);
+      border: 1px solid var(--surface-container-high);
+      border-left: var(--status-bar-width) solid var(--primary);
+      border-radius: var(--rounded-lg);
+      padding: var(--space-md);
+      color: var(--on-primary-container);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--space-md);
+    }
+    .callout[data-status="warn"] {
+      background: var(--status-yellow-bg);
+      border-color: var(--status-yellow-border);
+      border-left-color: var(--warning);
+      color: var(--status-yellow-fg);
+    }
+    .callout[data-status="alert"] {
+      background: var(--status-red-bg);
+      border-color: var(--status-red-border);
+      border-left-color: var(--error);
+      color: var(--status-red-fg);
+    }
+
+    /* Responsive Tables */
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      background: var(--background);
+    }
+    thead th {
+      background: var(--surface-container-low);
+      font-family: var(--font-label);
+      font-weight: 700;
+      font-size: var(--label-size);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+      text-align: left;
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--outline-variant);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--outline-variant);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    tbody tr:hover {
+      background-color: var(--surface-container-low);
+    }
+    .num {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Roster Matrix Specific */
+    .roster-table th.day-col, .roster-table td.day-cell {
+      text-align: center;
+      padding: 0.4rem 0.3rem;
+      min-width: 54px;
+    }
+    .roster-table th.weekend {
+      background-color: var(--surface-container);
+      color: var(--on-primary-container);
+    }
+    .shift-pill {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      min-height: 40px;
+      border-radius: 0.45rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 0.82rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      position: relative;
+      transition: transform var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .shift-pill:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgb(27 43 51 / 0.12);
+    }
+    .shift-pill[data-code="M"] { background: var(--shift-m-bg); color: var(--shift-m-fg); }
+    .shift-pill[data-code="P"] { background: var(--shift-p-bg); color: var(--shift-p-fg); }
+    .shift-pill[data-code="N"] { background: var(--shift-n-bg); color: var(--shift-n-fg); }
+    .shift-pill[data-code="S"] { background: var(--shift-s-bg); color: var(--shift-s-fg); }
+    .shift-pill[data-code="R"] { background: var(--shift-r-bg); color: var(--shift-r-fg); }
+    .shift-pill[data-code="PD"] { background: var(--shift-pd-bg); color: var(--shift-pd-fg); }
+    .shift-pill[data-code="FE"] { background: var(--shift-fe-bg); color: var(--shift-fe-fg); }
+    .shift-pill[data-code="MA"] { background: var(--shift-ma-bg); color: var(--shift-ma-fg); }
+
+    .shift-pill.is-draft {
+      border: 2px dashed var(--warning);
+    }
+    .shift-pill.is-violation {
+      box-shadow: 0 0 0 2px var(--error);
+    }
+    .draft-tag {
+      font-family: var(--font-label);
+      font-size: 0.56rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: var(--status-yellow-fg);
+      line-height: 1;
+      margin-top: 1px;
+    }
+
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.82rem;
+      color: var(--on-surface-variant);
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .legend-swatch {
+      display: inline-block;
+      padding: 0.1rem 0.4rem;
+      border-radius: 0.3rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    /* Split Grids */
+    .split-2col {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+      gap: var(--space-lg);
+      align-items: start;
+    }
+    .split-equal {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--space-lg);
+      align-items: start;
+    }
+
+    /* Heatmap Cells */
+    .hm-cell {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-width: 72px;
+      padding: 0.45rem 0.4rem;
+      border-radius: 0.45rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: transform var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+    }
+    .hm-cell:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--card-lift);
+    }
+    .hm-cell.selected {
+      box-shadow: 0 0 0 2px var(--on-surface);
+    }
+    .hm-cell[data-tier="RED"] {
+      background: var(--status-red-bg);
+      color: var(--status-red-fg);
+      border-color: var(--status-red-border);
+    }
+    .hm-cell[data-tier="YELLOW"] {
+      background: var(--status-yellow-bg);
+      color: var(--status-yellow-fg);
+      border-color: var(--status-yellow-border);
+    }
+    .hm-cell[data-tier="GREEN"] {
+      background: var(--status-green-bg);
+      color: var(--status-green-fg);
+      border-color: var(--status-green-border);
+    }
+    .hm-cell[data-tier="BLUE"] {
+      background: var(--status-blue-bg);
+      color: var(--status-blue-fg);
+      border-color: var(--status-blue-border);
+    }
+    .hm-sub {
+      font-family: var(--font-label);
+      font-size: 0.68rem;
+      font-weight: 700;
+      opacity: 0.9;
+    }
+
+    /* Progress Bars */
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: var(--rounded-full);
+      background: var(--surface-container);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: var(--rounded-full);
+      background: var(--primary);
+      transition: width var(--dur-short) var(--ease-out);
+    }
+    .progress-fill.ok { background: var(--tertiary); }
+    .progress-fill.warn { background: var(--warning); }
+    .progress-fill.alert { background: var(--error); }
+
+    /* Chart Containers */
+    .chart-box {
+      position: relative;
+      width: 100%;
+      min-height: 300px;
+      height: 320px;
+    }
+
+    /* Performance Sliders */
+    .rating-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 150px 44px;
+      gap: var(--space-sm);
+      align-items: center;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid var(--outline-variant);
+    }
+    .rating-row:last-child { border-bottom: none; }
+    input[type="range"] {
+      accent-color: var(--primary);
+      cursor: pointer;
+      min-height: 36px;
+    }
+
+    /* Inline Popover & Modal */
+    .shift-editor-bar {
+      background: var(--surface-container-low);
+      border: 1px solid var(--outline-variant);
+      border-left: var(--status-bar-width) solid var(--primary);
+      border-radius: var(--rounded);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgb(27 43 51 / 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-md);
+      z-index: 50;
+    }
+    .modal-backdrop.open {
+      display: flex;
+    }
+    .modal-dialog {
+      background: var(--background);
+      border: var(--card-border);
+      border-radius: var(--rounded-lg);
+      box-shadow: var(--card-lift);
+      max-width: 740px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: var(--space-lg);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    .code-block {
+      background: var(--surface-container-low);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--rounded);
+      padding: var(--space-md);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: var(--on-surface);
+      overflow-x: auto;
+      white-space: pre-wrap;
+      margin: 0;
+    }
+
+    .toast-region {
+      position: fixed;
+      bottom: var(--space-lg);
+      right: var(--space-lg);
+      z-index: 60;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      max-width: 420px;
+    }
+    .toast-item {
+      background: var(--on-surface);
+      color: var(--background);
+      border-left: var(--status-bar-width) solid var(--primary);
+      border-radius: var(--rounded);
+      padding: 0.75rem 1rem;
+      box-shadow: var(--card-lift);
+      font-size: 0.88rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--space-sm);
+      animation: fadeSlideIn var(--dur-short) var(--ease-out);
+    }
+    .toast-item[data-status="ok"] { border-left-color: var(--tertiary); }
+    .toast-item[data-status="warn"] { border-left-color: var(--warning); }
+    .toast-item[data-status="alert"] { border-left-color: var(--error); }
+
+    .source-footer {
+      border-top: 1px solid var(--outline-variant);
+      padding-top: var(--space-md);
+      font-size: 0.82rem;
+      color: var(--on-surface-variant);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    @media (max-width: 960px) {
+      .split-2col, .split-equal {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-grid {
+        padding: var(--space-sm);
+        gap: var(--space-md);
+      }
+      .app-header, .panel {
+        padding: var(--space-md);
+      }
+      .header-controls {
+        width: 100%;
+      }
+      .rating-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="page-grid">
+
+      <!-- HEADER -->
+      <header class="app-header">
+        <div class="header-identity">
+          <div class="kicker">Piattaforma Operativa Risorse Umane &amp; Turnistica H24</div>
+          <h1 class="title">Gestionale Turni &amp; HCM Sanità</h1>
+          <p class="lede">
+            Pianificazione turni H24 con flusso Bozza/Pubblicazione, monitoraggio FTE e criticità di reparto,
+            analisi micro-assenze, verifica ferie estive quadrimestrali e valutazione competenze cliniche.
+          </p>
+        </div>
+
+        <div class="header-controls">
+          <div class="control-group">
+            <label class="control-label" for="global-unit-filter">Unità Operativa (U.O.C.)</label>
+            <select id="global-unit-filter" onchange="onGlobalFilterChange()">
+              <option value="ALL">Tutti i reparti (4 U.O.C.)</option>
+              <option value="MED">Medicina Interna</option>
+              <option value="PS">Pronto Soccorso</option>
+              <option value="TI">Terapia Intensiva</option>
+              <option value="CHIR">Chirurgia Generale</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label" for="global-period-filter">Periodo Turnazione</label>
+            <select id="global-period-filter" onchange="onGlobalFilterChange()">
+              <option value="2026-11">Novembre 2026 (Ciclo Attivo)</option>
+              <option value="2026-12">Dicembre 2026 (Programmazione)</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn btn-ghost" onclick="openSupabaseModal()" id="btn-supabase-status">
+            <i data-lucide="database" aria-hidden="true" width="16" height="16"></i>
+            <span id="supabase-status-label">Demo Locale · Configura Supabase</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB NAVIGATION -->
+      <nav class="tab-bar" role="tablist" aria-label="Sezioni Gestionale Turni e HCM">
+        <button type="button" class="tab-btn active" role="tab" aria-selected="true" id="tab-btn-roster" onclick="switchTab('roster')">
+          <i data-lucide="calendar-clock" aria-hidden="true" width="17" height="17"></i>
+          <span>Tabellone Turni H24</span>
+          <span class="tab-count has-alert" id="badge-draft-count">0 BOZZE</span>
+        </button>
+
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" id="tab-btn-fte" onclick="switchTab('fte')">
+          <i data-lucide="activity" aria-hidden="true" width="17" height="17"></i>
+          <span>FTE &amp; Heatmap Criticità</span>
+          <span class="tab-count" id="badge-red-units">2 CRITICI</span>
+        </button>
+
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" id="tab-btn-micro" onclick="switchTab('micro')">
+          <i data-lucide="user-minus" aria-hidden="true" width="17" height="17"></i>
+          <span>Micro-Assenze (1–3 gg)</span>
+        </button>
+
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" id="tab-btn-ferie" onclick="switchTab('ferie')">
+          <i data-lucide="sun" aria-hidden="true" width="17" height="17"></i>
+          <span>Ferie Quadrimestrali</span>
+        </button>
+
+        <button type="button" class="tab-btn" role="tab" aria-selected="false" id="tab-btn-skills" onclick="switchTab('skills')">
+          <i data-lucide="award" aria-hidden="true" width="17" height="17"></i>
+          <span>Competenze &amp; Performance</span>
+        </button>
+      </nav>
+
+      <!-- =========================================================
+           SCHEDA 1: TABELLONE TURNI H24 (BOZZA & PUBBLICA MODIFICHE)
+           ========================================================= -->
+      <section id="panel-roster" class="tab-panel active" role="tabpanel" aria-labelledby="tab-btn-roster">
+        <div class="kpi-grid">
+          <div class="status-card interactive" data-status="warn" onclick="filterDraftsOnly()">
+            <span class="kpi-label">Turni in Stato BOZZA</span>
+            <span class="kpi-value" id="kpi-roster-drafts">0</span>
+            <span class="kpi-caption warn" id="kpi-roster-drafts-cap">Modifiche non ancora pubblicate</span>
+          </div>
+
+          <div class="status-card" data-status="ok" id="kpi-card-coverage">
+            <span class="kpi-label">Copertura Fabbisogno H24</span>
+            <span class="kpi-value" id="kpi-roster-coverage">96%</span>
+            <span class="kpi-caption ok" id="kpi-roster-coverage-cap">Turni M / P / N coperti</span>
+          </div>
+
+          <div class="status-card interactive" data-status="alert" id="kpi-card-violations" onclick="scrollToViolations()">
+            <span class="kpi-label">Verifiche D.Lgs. 66/2003</span>
+            <span class="kpi-value" id="kpi-roster-violations">0</span>
+            <span class="kpi-caption" id="kpi-roster-violations-cap">Riposo min. 11h ogni 24h &amp; max 48h/sett.</span>
+          </div>
+
+          <div class="status-card" data-status="info">
+            <span class="kpi-label">Finestra Pubblicazione CCNL</span>
+            <span class="kpi-value" id="kpi-roster-publish-status">Entro il 20</span>
+            <span class="kpi-caption" id="kpi-roster-last-pub">Ultimo invio RPC: Nessuno in sessione</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Matrice Turnazione H24 (Ciclo 14 giorni)</h2>
+              <p class="panel-subtitle">
+                Fai clic su una cella per assegnare o modificare il turno in <strong>BOZZA</strong>.
+                Il sistema verifica automaticamente le 11 ore di riposo consecutivo (D.Lgs. 66/2003, art. 7) prima della pubblicazione.
+              </p>
+            </div>
+            <div class="toolbar">
+              <div class="control-group">
+                <label class="control-label" for="roster-role-filter">Qualifica</label>
+                <select id="roster-role-filter" onchange="renderRosterView()">
+                  <option value="ALL">Tutte le qualifiche</option>
+                  <option value="Infermiere">Infermiere (36h)</option>
+                  <option value="OSS">OSS (36h)</option>
+                  <option value="Medico">Medico Dirigente (38h)</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-ghost" onclick="toggleDraftFilter()" id="btn-filter-drafts">
+                Mostra solo BOZZE
+              </button>
+              <button type="button" class="btn btn-danger-outline" onclick="discardDrafts(this)" id="btn-discard-drafts">
+                Annulla Bozze
+              </button>
+              <button type="button" class="btn btn-primary" onclick="publishShiftDrafts()" id="btn-publish-shifts">
+                <i data-lucide="send" aria-hidden="true" width="16" height="16"></i>
+                <span>Pubblica Modifiche</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Inline Shift Editor Bar (visible when cell is selected) -->
+          <div id="shift-editor-bar" class="shift-editor-bar" style="display: none;">
+            <div>
+              <strong id="editor-staff-name">—</strong> · <span id="editor-day-label" class="num">—</span>
+              <span class="chip" data-status="warn" id="editor-current-state">BOZZA</span>
+            </div>
+            <div class="toolbar">
+              <button type="button" class="btn btn-sm btn-ghost" onclick="applyShiftCode('M')">M (07–14)</button>
+              <button type="button" class="btn btn-sm btn-ghost" onclick="applyShiftCode('P')">P (14–21)</button>
+              <button type="button" class="btn btn-sm btn-ghost" onclick="applyShiftCode('N')">N (21–07)</button>
+              <button type="button" class="btn btn-sm btn-ghost" onclick="applyShiftCode('S')">S (Smonto)</button>
+              <button type="button" class="btn btn-sm btn-ghost" onclick="applyShiftCode('R')">R (Riposo)</button>
+              <button type="button" class="btn btn-sm btn-ghost" onclick="applyShiftCode('PD')">PD (Pronta Disp.)</button>
+              <button type="button" class="btn btn-sm btn-ghost" onclick="applyShiftCode('FE')">FE (Ferie)</button>
+              <button type="button" class="btn btn-sm btn-ghost" onclick="applyShiftCode('MA')">MA (Malattia)</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="closeShiftEditor()">Chiudi</button>
+            </div>
+          </div>
+
+          <div class="legend-row">
+            <span><strong>Legenda turni:</strong></span>
+            <span class="legend-item"><span class="legend-swatch" style="background: var(--shift-m-bg); color: var(--shift-m-fg);">M</span> Mattino 07–14 (7h)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: var(--shift-p-bg); color: var(--shift-p-fg);">P</span> Pomeriggio 14–21 (7h)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: var(--shift-n-bg); color: var(--shift-n-fg);">N</span> Notte 21–07 (10h)</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: var(--shift-s-bg); color: var(--shift-s-fg);">S</span> Smonto Notte</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: var(--shift-r-bg); color: var(--shift-r-fg);">R</span> Riposo 24h+11h</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: var(--shift-pd-bg); color: var(--shift-pd-fg);">PD</span> Pronta Disp. 12h</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: var(--shift-fe-bg); color: var(--shift-fe-fg);">FE</span> Ferie</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: var(--shift-ma-bg); color: var(--shift-ma-fg);">MA</span> Malattia</span>
+          </div>
+
+          <div class="table-wrap">
+            <table class="roster-table" id="roster-matrix-table">
+              <thead id="roster-thead"></thead>
+              <tbody id="roster-tbody"></tbody>
+            </table>
+          </div>
+
+          <div id="roster-compliance-box"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Registro Pubblicazione RPC &amp; Notifiche Push Dipendenti</h2>
+              <p class="panel-subtitle">Tracciamento delle chiamate alla funzione Supabase <code>pubblica_turni_e_notifica</code> e recapiti push verso l'app mobile del personale.</p>
+            </div>
+            <span class="chip" data-status="info" id="rpc-log-badge">Pronto per invio RPC</span>
+          </div>
+          <div id="push-log-list"></div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           SCHEDA 2: CRUSCOTTO FTE & HEATMAP CRITICITÀ ORGANICO
+           ========================================================= -->
+      <section id="panel-fte" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-fte">
+        <div class="kpi-grid">
+          <div class="status-card" data-status="info">
+            <span class="kpi-label">Organico Teorico vs Effettivo</span>
+            <span class="kpi-value" id="kpi-fte-ratio">124.6 / 142.0</span>
+            <span class="kpi-caption warn" id="kpi-fte-gap">Gap -17.4 FTE (-12.3%) per assenze e limitazioni</span>
+          </div>
+
+          <div class="status-card" data-status="alert">
+            <span class="kpi-label">Reparti / Fasce in Rosso</span>
+            <span class="kpi-value" id="kpi-fte-red">4 slot</span>
+            <span class="kpi-caption alert">Copertura &lt; 85% del fabbisogno minimo</span>
+          </div>
+
+          <div class="status-card" data-status="warn">
+            <span class="kpi-label">Straordinario Accumulato (Mese)</span>
+            <span class="kpi-value" id="kpi-fte-overtime">382 h</span>
+            <span class="kpi-caption warn">Attenzione soglia annua 180h/operatore (CCNL)</span>
+          </div>
+
+          <div class="status-card" data-status="blue">
+            <span class="kpi-label">Slot Blu Riallocabili (Surplus)</span>
+            <span class="kpi-value" id="kpi-fte-blue">3 slot</span>
+            <span class="kpi-caption">Disponibili per mobilità interna o ECM</span>
+          </div>
+        </div>
+
+        <div class="split-2col">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Heatmap Criticità Organico per Reparto e Fascia</h2>
+                <p class="panel-subtitle">Fai clic su qualsiasi cella per ispezionare il dettaglio FTE e le azioni correttive consigliate.</p>
+              </div>
+              <div class="legend-row">
+                <span class="chip" data-status="alert">Rosso &lt;85%</span>
+                <span class="chip" data-status="warn">Giallo 85–94%</span>
+                <span class="chip" data-status="ok">Verde 95–105%</span>
+                <span class="chip" data-status="blue">Blu &gt;105%</span>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table id="fte-heatmap-table">
+                <thead>
+                  <tr>
+                    <th>Unità Operativa</th>
+                    <th>Teorico / Eff. (FTE)</th>
+                    <th>Mattino Fer.</th>
+                    <th>Pomeriggio Fer.</th>
+                    <th>Notte H24</th>
+                    <th>Weekend / Festivi</th>
+                    <th>Stato Reparto</th>
+                  </tr>
+                </thead>
+                <tbody id="fte-heatmap-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel" id="fte-drilldown-panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title" id="fte-detail-title">Dettaglio Slot Selezionato</h2>
+                <p class="panel-subtitle" id="fte-detail-subtitle">Seleziona una cella della heatmap per visualizzare analisi e leve di copertura.</p>
+              </div>
+              <span class="chip" data-status="info" id="fte-detail-badge">Analisi</span>
+            </div>
+            <div id="fte-detail-body"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Confronto FTE Teorico, FTE Effettivo e Fabbisogno Minimo Assistenziale</h2>
+              <p class="panel-subtitle">La pianificazione deve partire dall'organico effettivamente disponibile (al netto di ferie, L.104, maternità, inidoneità notturne) e non dalla pianta organica teorica.</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="chart-fte-comparison"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           SCHEDA 3: CRUSCOTTO MICRO-ASSENZE (1-3 GIORNI)
+           ========================================================= -->
+      <section id="panel-micro" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-micro">
+        <div class="kpi-grid">
+          <div class="status-card" data-status="alert">
+            <span class="kpi-label">Episodi Micro-Assenza (90 gg)</span>
+            <span class="kpi-value" id="kpi-micro-episodes">34</span>
+            <span class="kpi-caption alert">Assenze brevi di durata 1–3 giorni</span>
+          </div>
+
+          <div class="status-card" data-status="warn">
+            <span class="kpi-label">Correlazione Post-Notte / Rientri Rapidi</span>
+            <span class="kpi-value" id="kpi-micro-postnight">62%</span>
+            <span class="kpi-caption warn">Episodi entro 48h da turno N o P→M</span>
+          </div>
+
+          <div class="status-card" data-status="info">
+            <span class="kpi-label">Giornate Perse Sostituite in Emergenza</span>
+            <span class="kpi-value" id="kpi-micro-days">58 gg</span>
+            <span class="kpi-caption">Copertura via banca ore / reperibilità</span>
+          </div>
+
+          <div class="status-card" data-status="ok">
+            <span class="kpi-label">Impatto Prevedibilità (4–6 Sett.)</span>
+            <span class="kpi-value">-28%</span>
+            <span class="kpi-caption ok">Riduzione assenze last-minute in reparti pilota</span>
+          </div>
+        </div>
+
+        <div class="split-2col">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Monitoraggio Operatori con Micro-Assenze Ricorrenti (1–3 gg)</h2>
+                <p class="panel-subtitle">Individuazione precoce dei segnali di sovraccarico e rotazioni compresse prima che evolvano in burnout o dimissioni.</p>
+              </div>
+              <div class="toolbar">
+                <div class="control-group">
+                  <label class="control-label" for="micro-duration-filter">Durata Episodio</label>
+                  <select id="micro-duration-filter" onchange="renderMicroAbsenceView()">
+                    <option value="ALL">Tutte (1–3 giorni)</option>
+                    <option value="1">Solo 1 giorno</option>
+                    <option value="2">2 giorni</option>
+                    <option value="3">3 giorni</option>
+                  </select>
+                </div>
+                <div class="control-group">
+                  <label class="control-label" for="micro-pattern-filter">Pattern Rilevato</label>
+                  <select id="micro-pattern-filter" onchange="renderMicroAbsenceView()">
+                    <option value="ALL">Tutti i pattern</option>
+                    <option value="POST_NOTTE">Post-turno Notte / Smonto</option>
+                    <option value="PONTE">Adiacente Riposo / Weekend</option>
+                    <option value="RIENTRO_RAPIDO">Post-rientro rapido (&lt;12h)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Operatore</th>
+                    <th>Reparto</th>
+                    <th>Episodi (1–3 gg)</th>
+                    <th>Giorni Totali</th>
+                    <th>Pattern Prevalente</th>
+                    <th>Rischio</th>
+                    <th>Intervento Coordinatore</th>
+                  </tr>
+                </thead>
+                <tbody id="micro-absence-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Andamento Micro-Assenze vs Anticipo Pubblicazione Turni</h2>
+                <p class="panel-subtitle">Confronto ultimi 6 mesi: effetto della pubblicazione anticipata a 4–6 settimane.</p>
+              </div>
+            </div>
+            <div class="chart-box">
+              <canvas id="chart-micro-absences"></canvas>
+            </div>
+            <div class="callout" data-status="info">
+              <div>
+                <strong>Indicazione organizzativa (D.Lgs. 66/2003 &amp; Benessere):</strong>
+                evitare sequenze <em>Pomeriggio → Mattino</em> e rientri immediati post-smonto notte riduce le assenze brevi ripetute e contiene il ricorso allo straordinario d'urgenza.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           SCHEDA 4: CRUSCOTTO FERIE QUADRIMESTRALI (FEB-GEN & Q2 15 GG)
+           ========================================================= -->
+      <section id="panel-ferie" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-ferie">
+        <div class="kpi-grid">
+          <div class="status-card" data-status="ok" id="kpi-ferie-q2-card">
+            <span class="kpi-label">Conformità 15 gg Estivi in Q2</span>
+            <span class="kpi-value" id="kpi-ferie-compliance">75%</span>
+            <span class="kpi-caption" id="kpi-ferie-compliance-cap">9 su 12 operatori conformi (Giu–Set)</span>
+          </div>
+
+          <div class="status-card" data-status="alert">
+            <span class="kpi-label">Operatori Non Conformi Q2 (&lt;15 gg)</span>
+            <span class="kpi-value" id="kpi-ferie-noncompliant">3</span>
+            <span class="kpi-caption alert">Richiedono assegnazione blocco estivo continuativo</span>
+          </div>
+
+          <div class="status-card" data-status="warn">
+            <span class="kpi-label">Residuo Ferie Anno Prec. (AP)</span>
+            <span class="kpi-value" id="kpi-ferie-ap">86 gg</span>
+            <span class="kpi-caption warn">Da smaltire entro 18 mesi (D.Lgs. 66/2003 art. 10)</span>
+          </div>
+
+          <div class="status-card" data-status="info">
+            <span class="kpi-label">Periodo Ciclo Annuale</span>
+            <span class="kpi-value">Feb – Gen</span>
+            <span class="kpi-caption">Q1 Feb–Mag · Q2 Giu–Set · Q3 Ott–Gen</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Piano Ferie Quadrimestrale (Febbraio 2026 – Gennaio 2027)</h2>
+              <p class="panel-subtitle">
+                Verifica automatica della soglia contrattuale dei <strong>15 giorni continuativi estivi nel Q2 (Giugno–Settembre)</strong>.
+                Modifica i giorni pianificati o assegna rapidamente il blocco estivo per verificare l'equilibrio di reparto.
+              </p>
+            </div>
+            <div class="toolbar">
+              <div class="control-group">
+                <label class="control-label" for="ferie-status-filter">Stato Verifica Q2</label>
+                <select id="ferie-status-filter" onchange="renderFerieView()">
+                  <option value="ALL">Tutti gli operatori</option>
+                  <option value="NON_CONFORME">Solo Non Conformi (&lt;15 gg Q2)</option>
+                  <option value="CONFORME">Solo Conformi (≥15 gg Q2)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Operatore</th>
+                  <th>Reparto</th>
+                  <th>Residuo AP</th>
+                  <th>Spettanza Feb–Gen</th>
+                  <th>Q1 (Feb–Mag)</th>
+                  <th>Q2 (Giu–Set)</th>
+                  <th>Max Blocco Cont. Q2</th>
+                  <th>Q3 (Ott–Gen)</th>
+                  <th>Verifica 15 gg Estivi</th>
+                  <th>Azione Rapida</th>
+                </tr>
+              </thead>
+              <tbody id="ferie-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Distribuzione Assenze per Ferie nei 3 Quadrimestri e Soglia Sovrapposizione Estiva</h2>
+              <p class="panel-subtitle">Monitoraggio del limite massimo contemporaneo del 20% di organico assente in Q2 per garantire la continuità H24.</p>
+            </div>
+          </div>
+          <div class="chart-box">
+            <canvas id="chart-ferie-quadrimestri"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           SCHEDA 5: MAPPATURA COMPETENZE & SCHEDE PERFORMANCE
+           ========================================================= -->
+      <section id="panel-skills" class="tab-panel" role="tabpanel" aria-labelledby="tab-btn-skills">
+        <div class="kpi-grid">
+          <div class="status-card" data-status="ok">
+            <span class="kpi-label">Abilitazioni Critiche Valide</span>
+            <span class="kpi-value" id="kpi-skills-valid">88%</span>
+            <span class="kpi-caption ok">BLSD, ACLS, Triage, Ventilazione, CRRT</span>
+          </div>
+
+          <div class="status-card" data-status="warn">
+            <span class="kpi-label">Certificazioni in Scadenza (&lt;60 gg)</span>
+            <span class="kpi-value" id="kpi-skills-expiring">5</span>
+            <span class="kpi-caption warn">Pianificare retraining ECM obbligatorio</span>
+          </div>
+
+          <div class="status-card" data-status="alert">
+            <span class="kpi-label">Certificazioni Scadute</span>
+            <span class="kpi-value" id="kpi-skills-expired">2</span>
+            <span class="kpi-caption alert">Blocca assegnazione a postazioni ad alta intensità</span>
+          </div>
+
+          <div class="status-card" data-status="info">
+            <span class="kpi-label">Media Performance Équipe</span>
+            <span class="kpi-value" id="kpi-skills-avg-perf">4.2 / 5.0</span>
+            <span class="kpi-caption" id="kpi-skills-evaluated-count">Schede valutate nel ciclo corrente</span>
+          </div>
+        </div>
+
+        <div class="split-2col">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Matrice Competenze &amp; Abilitazioni di Reparto</h2>
+                <p class="panel-subtitle">Seleziona un operatore per aprire e aggiornare la Scheda di Valutazione Performance.</p>
+              </div>
+              <div class="toolbar">
+                <div class="control-group">
+                  <label class="control-label" for="skills-cert-filter">Filtra Abilitazione</label>
+                  <select id="skills-cert-filter" onchange="renderSkillsView()">
+                    <option value="ALL">Tutte le abilitazioni</option>
+                    <option value="BLSD">BLSD</option>
+                    <option value="ACLS">ACLS / ALS</option>
+                    <option value="TRIAGE">Triage Avanzato</option>
+                    <option value="VENT">Ventilazione Invasiva / NIV</option>
+                    <option value="CRRT">CRRT / Dialisi</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Operatore</th>
+                    <th>Qualifica &amp; Reparto</th>
+                    <th>Abilitazioni Principali</th>
+                    <th>Stato Cert.</th>
+                    <th>Punteggio Perf.</th>
+                  </tr>
+                </thead>
+                <tbody id="skills-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Scheda Valutazione Performance -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title" id="perf-card-name">Scheda Valutazione Performance</h2>
+                <p class="panel-subtitle" id="perf-card-role">Seleziona un operatore dalla matrice</p>
+              </div>
+              <span class="chip" data-status="info" id="perf-card-score-badge">4.2 / 5.0</span>
+            </div>
+
+            <div id="perf-cert-badges" class="legend-row"></div>
+
+            <div>
+              <div class="rating-row">
+                <label class="control-label" for="perf-dim-1">1. Competenze Clinico-Assistenziali</label>
+                <input type="range" id="perf-dim-1" min="1" max="5" step="0.5" value="4" oninput="onPerfSliderInput()">
+                <span class="num" id="perf-val-1">4.0</span>
+              </div>
+              <div class="rating-row">
+                <label class="control-label" for="perf-dim-2">2. Gestione Emergenze &amp; Urgenze</label>
+                <input type="range" id="perf-dim-2" min="1" max="5" step="0.5" value="4" oninput="onPerfSliderInput()">
+                <span class="num" id="perf-val-2">4.0</span>
+              </div>
+              <div class="rating-row">
+                <label class="control-label" for="perf-dim-3">3. Lavoro in Équipe &amp; Consegne</label>
+                <input type="range" id="perf-dim-3" min="1" max="5" step="0.5" value="4" oninput="onPerfSliderInput()">
+                <span class="num" id="perf-val-3">4.0</span>
+              </div>
+              <div class="rating-row">
+                <label class="control-label" for="perf-dim-4">4. Protocolli &amp; Sicurezza Paziente</label>
+                <input type="range" id="perf-dim-4" min="1" max="5" step="0.5" value="4.5" oninput="onPerfSliderInput()">
+                <span class="num" id="perf-val-4">4.5</span>
+              </div>
+              <div class="rating-row">
+                <label class="control-label" for="perf-dim-5">5. Flessibilità &amp; Aggiornamento ECM</label>
+                <input type="range" id="perf-dim-5" min="1" max="5" step="0.5" value="4" oninput="onPerfSliderInput()">
+                <span class="num" id="perf-val-5">4.0</span>
+              </div>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label" for="perf-notes">Note del Coordinatore &amp; Obiettivi Formativi</label>
+              <textarea id="perf-notes" rows="3"></textarea>
+            </div>
+
+            <div class="toolbar">
+              <button type="button" class="btn btn-primary" onclick="savePerformanceEvaluation()">
+                <i data-lucide="save" aria-hidden="true" width="16" height="16"></i>
+                <span>Salva Scheda Valutazione</span>
+              </button>
+              <span class="kpi-caption" id="perf-save-status">Pronto per aggiornamento</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="source-footer">
+        <span>
+          Riferimenti normativi e organizzativi: D.Lgs. 66/2003 (artt. 4, 7, 8, 9, 10, 13, 17), Legge 161/2014,
+          CCNL Comparto Sanità 2019–2021 / Area Dirigenza Medica, analisi turnistica H24 (StaffRoster, Randstad Research, CoAS Medici, Nurse24).
+        </span>
+        <span>
+          Persistenza sessione attiva via Gemini Notebook API · Pronto per deploy Vercel + Supabase.
+        </span>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIGURAZIONE SUPABASE & DEPLOY VERCEL -->
+  <div id="supabase-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="supabase-modal-title">
+    <div class="modal-dialog">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title" id="supabase-modal-title">Integrazione Supabase &amp; Deploy Vercel</h2>
+          <p class="panel-subtitle">Configura le credenziali del progetto Supabase per collegare viste analitiche, schede performance e funzione RPC con notifiche push.</p>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeSupabaseModal()">Chiudi</button>
+      </div>
+
+      <div class="callout" data-status="info" id="supabase-modal-status-box">
+        <div>
+          <strong>Stato attuale:</strong> <span id="supabase-modal-mode-text">Modalità Demo Locale (dati di reparto precaricati)</span>
+        </div>
+      </div>
+
+      <div class="split-equal">
+        <div class="control-group">
+          <label class="control-label" for="cfg-supabase-url">SUPABASE_URL</label>
+          <input type="text" id="cfg-supabase-url" value="">
+        </div>
+        <div class="control-group">
+          <label class="control-label" for="cfg-supabase-key">SUPABASE_ANON_KEY</label>
+          <input type="password" id="cfg-supabase-key" value="">
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="btn btn-primary" onclick="applySupabaseConfig()">
+          Salva Credenziali &amp; Connetti SDK
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="syncFromSupabaseViews()">
+          Sincronizza Viste Analitiche
+        </button>
+        <button type="button" class="btn btn-ghost" onclick="downloadVercelIndexHtml()">
+          <i data-lucide="download" aria-hidden="true" width="16" height="16"></i>
+          <span>Scarica index.html per Vercel</span>
+        </button>
+      </div>
+
+      <div>
+        <div class="control-label" style="margin-bottom: 0.35rem;">Viste Analitiche &amp; RPC Supabase configurate nello script</div>
+        <pre class="code-block" id="supabase-sql-preview"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <api-shim></api-shim>
+
+  <script>
+    // =========================================================================
+    // 1. CONFIGURAZIONE SUPABASE (Credenziali configurabili per deploy Vercel)
+    //    SDK CDN ufficiale: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
+    // =========================================================================
+    const SUPABASE_CONFIG = {
+      SUPABASE_URL: `https://tuo-progetto.example.com`,
+      SUPABASE_ANON_KEY: `INSERISCI_LA_TUA_SUPABASE_ANON_KEY`,
+      SDK_CDN_URL: `https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2`,
+      VIEWS: {
+        TURNI: `v_tabellone_turni_h24`,
+        FTE_HEATMAP: `v_criticita_organico_fte`,
+        MICRO_ASSENZE: `v_micro_assenze_1_3gg`,
+        FERIE_QUADRIMESTRALI: `v_ferie_quadrimestrali_q1_q3`,
+        COMPETENZE_PERF: `v_matrice_competenze_performance`
+      },
+      RPC_PUBLISH: `pubblica_turni_e_notifica`
+    };
+
+    let supabaseClient = null;
+    let isSupabaseLive = false;
+
+    // =========================================================================
+    // 2. STATO APPLICATIVO & DATASET CLINICO REALISTICO
+    // =========================================================================
+    const DAYS_NOV = [
+      { key: `2026-11-16`, label: `16 Lun`, weekend: false },
+      { key: `2026-11-17`, label: `17 Mar`, weekend: false },
+      { key: `2026-11-18`, label: `18 Mer`, weekend: false },
+      { key: `2026-11-19`, label: `19 Gio`, weekend: false },
+      { key: `2026-11-20`, label: `20 Ven`, weekend: false },
+      { key: `2026-11-21`, label: `21 Sab`, weekend: true },
+      { key: `2026-11-22`, label: `22 Dom`, weekend: true },
+      { key: `2026-11-23`, label: `23 Lun`, weekend: false },
+      { key: `2026-11-24`, label: `24 Mar`, weekend: false },
+      { key: `2026-11-25`, label: `25 Mer`, weekend: false },
+      { key: `2026-11-26`, label: `26 Gio`, weekend: false },
+      { key: `2026-11-27`, label: `27 Ven`, weekend: false },
+      { key: `2026-11-28`, label: `28 Sab`, weekend: true },
+      { key: `2026-11-29`, label: `29 Dom`, weekend: true }
+    ];
+
+    const DAYS_DEC = [
+      { key: `2026-12-01`, label: `01 Mar`, weekend: false },
+      { key: `2026-12-02`, label: `02 Mer`, weekend: false },
+      { key: `2026-12-03`, label: `03 Gio`, weekend: false },
+      { key: `2026-12-04`, label: `04 Ven`, weekend: false },
+      { key: `2026-12-05`, label: `05 Sab`, weekend: true },
+      { key: `2026-12-06`, label: `06 Dom`, weekend: true },
+      { key: `2026-12-07`, label: `07 Lun`, weekend: false },
+      { key: `2026-12-08`, label: `08 Mar`, weekend: true },
+      { key: `2026-12-09`, label: `09 Mer`, weekend: false },
+      { key: `2026-12-10`, label: `10 Gio`, weekend: false },
+      { key: `2026-12-11`, label: `11 Ven`, weekend: false },
+      { key: `2026-12-12`, label: `12 Sab`, weekend: true },
+      { key: `2026-12-13`, label: `13 Dom`, weekend: true },
+      { key: `2026-12-14`, label: `14 Lun`, weekend: false }
+    ];
+
+    const SHIFT_HOURS = {
+      M: 7,
+      P: 7,
+      N: 10,
+      S: 0,
+      R: 0,
+      PD: 0,
+      FE: 7.2,
+      MA: 7.2
+    };
+
+    const UNIT_LABELS = {
+      MED: `Medicina Interna`,
+      PS: `Pronto Soccorso`,
+      TI: `Terapia Intensiva`,
+      CHIR: `Chirurgia Generale`
+    };
+
+    function createInitialState() {
+      return {
+        activeTab: `roster`,
+        selectedUnit: `ALL`,
+        selectedPeriod: `2026-11`,
+        showDraftsOnly: false,
+        selectedStaffForPerf: `OP-01`,
+        selectedHeatmapKey: `PS|Notte H24`,
+        lastPublishedAt: null,
+        supabaseConfig: {
+          url: SUPABASE_CONFIG.SUPABASE_URL,
+          anonKey: SUPABASE_CONFIG.SUPABASE_ANON_KEY
+        },
+        staff: [
+          {
+            id: `OP-01`, name: `Elena Marchetti`, role: `Infermiere`, unit: `TI`, contractHours: 36,
+            notes: `Idonea H24 · Referente ventilazione`,
+            shiftsNov: [`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`R`,`R`],
+            shiftsDec: [`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`],
+            draftsNov: { 5: `M`, 6: `M` }, // esempio P(4)->M(5)? No, idx 4=R, idx 5=M. Mettiamo un caso realistico: idx 2 era N, mettiamo idx 1 P e idx 2 M per mostrare allerta? Lasciamo pulito + 2 bozze reali
+            draftsDec: {},
+            ferie: { ap: 6, maturate: 32, q1: 6, q2: 18, maxBlockQ2: 16, q3: 8 },
+            micro: { episodes: 1, days: 2, pattern: `PONTE`, risk: `BASSO`, intervention: `Monitorato` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-09` },
+              { code: `ACLS`, status: `VALID`, exp: `2027-04` },
+              { code: `VENT`, status: `VALID`, exp: `2028-01` },
+              { code: `CRRT`, status: `EXPIRING`, exp: `2026-12` }
+            ],
+            perf: { dims: [4.5, 5.0, 4.5, 5.0, 4.0], note: `Ottima gestione pazienti critici e affiancamento neoassunti.` }
+          },
+          {
+            id: `OP-02`, name: `Marco Bellini`, role: `Infermiere`, unit: `PS`, contractHours: 36,
+            notes: `Triage avanzato · 3 rientri rapidi nel trimestre`,
+            shiftsNov: [`P`,`M`,`N`,`S`,`R`,`P`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`],
+            shiftsDec: [`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`],
+            draftsNov: { 1: `M` }, // P(0) -> M(1) viola le 11h di riposo!
+            draftsDec: {},
+            ferie: { ap: 12, maturate: 32, q1: 8, q2: 12, maxBlockQ2: 10, q3: 10 },
+            micro: { episodes: 6, days: 11, pattern: `RIENTRO_RAPIDO`, risk: `ALTO`, intervention: `Da pianificare` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-05` },
+              { code: `ACLS`, status: `VALID`, exp: `2027-02` },
+              { code: `TRIAGE`, status: `VALID`, exp: `2027-11` }
+            ],
+            perf: { dims: [4.5, 4.5, 4.0, 4.0, 3.5], note: `Elevata competenza in emergenza; ridurre rotazioni P→M.` }
+          },
+          {
+            id: `OP-03`, name: `Chiara Fontana`, role: `Infermiere`, unit: `MED`, contractHours: 36,
+            notes: `Legge 104 art. 3 c.3 (3 gg/mese)`,
+            shiftsNov: [`M`,`M`,`P`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`R`,`M`,`M`],
+            shiftsDec: [`M`,`P`,`N`,`S`,`R`,`M`,`P`,`R`,`M`,`P`,`N`,`S`,`R`,`M`],
+            draftsNov: { 12: `FE` },
+            draftsDec: {},
+            ferie: { ap: 4, maturate: 32, q1: 5, q2: 16, maxBlockQ2: 15, q3: 9 },
+            micro: { episodes: 2, days: 3, pattern: `POST_NOTTE`, risk: `BASSO`, intervention: `Monitorato` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-06` },
+              { code: `VENT`, status: `EXPIRING`, exp: `2026-12` }
+            ],
+            perf: { dims: [4.0, 3.5, 4.5, 4.5, 4.0], note: `Accuratezza elevata nella somministrazione terapie e consegne.` }
+          },
+          {
+            id: `OP-04`, name: `Luca De Santis`, role: `OSS`, unit: `MED`, contractHours: 36,
+            notes: `Esenzione notti temporanea (Medico Competente)`,
+            shiftsNov: [`M`,`P`,`M`,`P`,`R`,`M`,`M`,`P`,`P`,`R`,`M`,`P`,`R`,`M`],
+            shiftsDec: [`M`,`P`,`M`,`P`,`R`,`M`,`P`,`M`,`P`,`R`,`M`,`P`,`R`,`R`],
+            draftsNov: {},
+            draftsDec: {},
+            ferie: { ap: 9, maturate: 32, q1: 10, q2: 11, maxBlockQ2: 11, q3: 8 },
+            micro: { episodes: 4, days: 7, pattern: `PONTE`, risk: `MEDIO`, intervention: `Colloquio programmato` },
+            certs: [
+              { code: `BLSD`, status: `EXPIRED`, exp: `2026-10` }
+            ],
+            perf: { dims: [3.5, 3.5, 4.0, 4.0, 3.5], note: `Necessario rinnovo BLSD e riequilibrio carichi di mobilitazione.` }
+          },
+          {
+            id: `OP-05`, name: `Giulia Rinaldi`, role: `Medico`, unit: `PS`, contractHours: 38,
+            notes: `Dirigente Medico · Pronta Disponibilità notturna`,
+            shiftsNov: [`M`,`M`,`N`,`S`,`R`,`PD`,`M`,`P`,`N`,`S`,`R`,`M`,`PD`,`R`],
+            shiftsDec: [`M`,`P`,`N`,`S`,`R`,`M`,`PD`,`M`,`N`,`S`,`R`,`M`,`P`,`R`],
+            draftsNov: { 5: `PD` },
+            draftsDec: {},
+            ferie: { ap: 14, maturate: 32, q1: 6, q2: 15, maxBlockQ2: 15, q3: 11 },
+            micro: { episodes: 3, days: 5, pattern: `POST_NOTTE`, risk: `MEDIO`, intervention: `Da pianificare` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-08` },
+              { code: `ACLS`, status: `VALID`, exp: `2027-03` },
+              { code: `TRIAGE`, status: `VALID`, exp: `2027-07` }
+            ],
+            perf: { dims: [5.0, 5.0, 4.5, 4.5, 4.5], note: `Leadership clinica riconosciuta nei codici rossi.` }
+          },
+          {
+            id: `OP-06`, name: `Matteo Ferri`, role: `Infermiere`, unit: `TI`, contractHours: 36,
+            notes: `Abilitato CRRT & ECMO`,
+            shiftsNov: [`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`],
+            shiftsDec: [`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`],
+            draftsNov: {},
+            draftsDec: {},
+            ferie: { ap: 2, maturate: 32, q1: 7, q2: 18, maxBlockQ2: 18, q3: 7 },
+            micro: { episodes: 1, days: 1, pattern: `POST_NOTTE`, risk: `BASSO`, intervention: `Monitorato` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-10` },
+              { code: `ACLS`, status: `VALID`, exp: `2027-06` },
+              { code: `VENT`, status: `VALID`, exp: `2027-12` },
+              { code: `CRRT`, status: `VALID`, exp: `2027-09` }
+            ],
+            perf: { dims: [5.0, 4.5, 4.5, 5.0, 4.5], note: `Riferimento turno in quinta stabile; zero ritardi.` }
+          },
+          {
+            id: `OP-07`, name: `Sara Lombardi`, role: `Infermiere`, unit: `CHIR`, contractHours: 36,
+            notes: `Strumentazione urgenze + PD festiva`,
+            shiftsNov: [`M`,`P`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`PD`,`R`,`M`,`P`],
+            shiftsDec: [`M`,`P`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`R`,`PD`,`M`,`P`],
+            draftsNov: { 10: `PD` },
+            draftsDec: {},
+            ferie: { ap: 8, maturate: 32, q1: 8, q2: 14, maxBlockQ2: 12, q3: 10 },
+            micro: { episodes: 5, days: 9, pattern: `POST_NOTTE`, risk: `ALTO`, intervention: `Da pianificare` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-04` },
+              { code: `ACLS`, status: `EXPIRING`, exp: `2026-12` }
+            ],
+            perf: { dims: [4.0, 4.0, 4.0, 4.5, 3.5], note: `Segnala affaticamento post-reperibilità notturna.` }
+          },
+          {
+            id: `OP-08`, name: `Davide Conti`, role: `OSS`, unit: `PS`, contractHours: 36,
+            notes: `Supporto area osservazione breve`,
+            shiftsNov: [`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`],
+            shiftsDec: [`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`],
+            draftsNov: {},
+            draftsDec: {},
+            ferie: { ap: 5, maturate: 32, q1: 6, q2: 16, maxBlockQ2: 16, q3: 10 },
+            micro: { episodes: 3, days: 6, pattern: `RIENTRO_RAPIDO`, risk: `MEDIO`, intervention: `Monitorato` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-01` }
+            ],
+            perf: { dims: [4.0, 4.0, 4.5, 4.0, 4.0], note: `Collaborativo nei picchi di afflusso in Pronto Soccorso.` }
+          },
+          {
+            id: `OP-09`, name: `Francesca Galli`, role: `Infermiere`, unit: `MED`, contractHours: 36,
+            notes: `Coordinamento flussi dimissioni`,
+            shiftsNov: [`M`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`R`,`M`,`P`,`N`,`S`,`R`],
+            shiftsDec: [`M`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`R`,`M`,`P`,`N`,`S`,`R`],
+            draftsNov: {},
+            draftsDec: {},
+            ferie: { ap: 7, maturate: 32, q1: 5, q2: 17, maxBlockQ2: 15, q3: 10 },
+            micro: { episodes: 2, days: 3, pattern: `PONTE`, risk: `BASSO`, intervention: `Monitorato` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-07` },
+              { code: `VENT`, status: `VALID`, exp: `2027-05` }
+            ],
+            perf: { dims: [4.5, 4.0, 5.0, 4.5, 4.5], note: `Eccellente integrazione con servizi territoriali.` }
+          },
+          {
+            id: `OP-10`, name: `Andrea Moretti`, role: `Medico`, unit: `CHIR`, contractHours: 38,
+            notes: `Guardia attiva + PD chirurgia d'urgenza`,
+            shiftsNov: [`M`,`P`,`M`,`N`,`S`,`R`,`M`,`M`,`PD`,`R`,`M`,`P`,`N`,`S`],
+            shiftsDec: [`M`,`P`,`M`,`N`,`S`,`R`,`M`,`M`,`PD`,`R`,`M`,`P`,`N`,`S`],
+            draftsNov: {},
+            draftsDec: {},
+            ferie: { ap: 11, maturate: 32, q1: 6, q2: 16, maxBlockQ2: 15, q3: 9 },
+            micro: { episodes: 2, days: 4, pattern: `POST_NOTTE`, risk: `BASSO`, intervention: `Monitorato` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-03` },
+              { code: `ACLS`, status: `EXPIRED`, exp: `2026-09` }
+            ],
+            perf: { dims: [4.5, 4.5, 4.0, 4.0, 3.5], note: `Pianificare retraining ACLS entro fine mese.` }
+          },
+          {
+            id: `OP-11`, name: `Valentina Costa`, role: `Infermiere`, unit: `CHIR`, contractHours: 36,
+            notes: `Team sala risveglio & degenza`,
+            shiftsNov: [`P`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`],
+            shiftsDec: [`P`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`],
+            draftsNov: {},
+            draftsDec: {},
+            ferie: { ap: 3, maturate: 32, q1: 7, q2: 16, maxBlockQ2: 16, q3: 9 },
+            micro: { episodes: 1, days: 2, pattern: `PONTE`, risk: `BASSO`, intervention: `Monitorato` },
+            certs: [
+              { code: `BLSD`, status: `VALID`, exp: `2027-11` },
+              { code: `ACLS`, status: `EXPIRING`, exp: `2026-12` }
+            ],
+            perf: { dims: [4.0, 4.0, 4.5, 4.5, 4.0], note: `Precisione costante nei protocolli pre/post operatori.` }
+          },
+          {
+            id: `OP-12`, name: `Roberto Villa`, role: `OSS`, unit: `TI`, contractHours: 36,
+            notes: `Supporto igiene critica & pronazione`,
+            shiftsNov: [`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`],
+            shiftsDec: [`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`,`R`,`M`,`P`,`N`,`S`],
+            draftsNov: {},
+            draftsDec: {},
+            ferie: { ap: 9, maturate: 32, q1: 8, q2: 16, maxBlockQ2: 15, q3: 8 },
+            micro: { episodes: 6, days: 12, pattern: `POST_NOTTE`, risk: `ALTO`, intervention: `Colloquio programmato` },
+            certs: [
+              { code: `BLSD`, status: `EXPIRING`, exp: `2026-12` }
+            ],
+            perf: { dims: [4.0, 4.0, 4.0, 4.0, 3.5], note: `Monitorare carico fisico notturno; valutare turnazione mista.` }
+          }
+        ],
+        fteUnits: [
+          {
+            unit: `MED`, name: `Medicina Interna`, theoreticalFte: 38.0, effectiveFte: 32.8, requiredFte: 34.0, overtimeHours: 98,
+            slots: [
+              { label: `Mattino Fer.`, pct: 98, tier: `GREEN`, req: 10, avail: 10, note: `Copertura regolare con 1 risorsa in formazione.` },
+              { label: `Pomeriggio Fer.`, pct: 90, tier: `YELLOW`, req: 8, avail: 7, note: `Scopertura di 1 unità gestibile tramite banca ore.` },
+              { label: `Notte H24`, pct: 82, tier: `RED`, req: 6, avail: 5, note: `2 operatori con esenzione notti attiva (art. 15 D.Lgs. 66/03).` },
+              { label: `Weekend / Festivi`, pct: 92, tier: `YELLOW`, req: 7, avail: 6.5, note: `Richiesto monitoraggio equità domeniche trimestrali.` }
+            ]
+          },
+          {
+            unit: `PS`, name: `Pronto Soccorso`, theoreticalFte: 42.0, effectiveFte: 34.2, requiredFte: 38.5, overtimeHours: 146,
+            slots: [
+              { label: `Mattino Fer.`, pct: 95, tier: `GREEN`, req: 11, avail: 10.5, note: `Presidio Triage e Obi coperto entro soglia.` },
+              { label: `Pomeriggio Fer.`, pct: 88, tier: `YELLOW`, req: 11, avail: 9.5, note: `Picco accessi 15–20: attivare disponibilità volontaria.` },
+              { label: `Notte H24`, pct: 79, tier: `RED`, req: 9, avail: 7, note: `Criticità acuta: carenza 2 infermieri ACLS/Triage; valutare somministrazione.` },
+              { label: `Weekend / Festivi`, pct: 81, tier: `RED`, req: 10, avail: 8, note: `Elevato ricorso a straordinari (+30% festivo); alto rischio burnout.` }
+            ]
+          },
+          {
+            unit: `TI`, name: `Terapia Intensiva`, theoreticalFte: 34.0, effectiveFte: 31.4, requiredFte: 30.0, overtimeHours: 54,
+            slots: [
+              { label: `Mattino Fer.`, pct: 108, tier: `BLUE`, req: 9, avail: 10, note: `Surplus +1 FTE riallocabile su PS o destinabile a ECM.` },
+              { label: `Pomeriggio Fer.`, pct: 102, tier: `GREEN`, req: 8, avail: 8, note: `Turno in quinta completo e bilanciato.` },
+              { label: `Notte H24`, pct: 97, tier: `GREEN`, req: 7, avail: 7, note: `Rapporto infermiere/posto letto pienamente rispettato.` },
+              { label: `Weekend / Festivi`, pct: 106, tier: `BLUE`, req: 7, avail: 7.5, note: `Margine di riserva attivo per urgenze inter-reparto.` }
+            ]
+          },
+          {
+            unit: `CHIR`, name: `Chirurgia Generale`, theoreticalFte: 28.0, effectiveFte: 26.2, requiredFte: 26.5, overtimeHours: 84,
+            slots: [
+              { label: `Mattino Fer.`, pct: 107, tier: `BLUE`, req: 8, avail: 8.5, note: `Surplus diurno nei giorni senza seduta operatoria extra.` },
+              { label: `Pomeriggio Fer.`, pct: 96, tier: `GREEN`, req: 7, avail: 7, note: `Copertura post-operatoria ottimale.` },
+              { label: `Notte H24`, pct: 84, tier: `RED`, req: 5, avail: 4, note: `Sotto soglia minima: dipendenza eccessiva da pronta disponibilità.` },
+              { label: `Weekend / Festivi`, pct: 91, tier: `YELLOW`, req: 5, avail: 4.5, note: `Verificare limite massimo 7 PD/mese per operatore.` }
+            ]
+          }
+        ],
+        pushLogs: [
+          {
+            timestamp: `15/11/2026 18:10`,
+            unit: `Tutti i reparti`,
+            publishedCount: 168,
+            notifiedUsers: 12,
+            status: `CONFERMATO`,
+            note: `Pubblicazione iniziale calendario ciclo Novembre 2026 (entro termine art. CCNL giorno 20).`
+          }
+        ]
+      };
+    }
+
+    let appState = createInitialState();
+    let selectedCell = null; // { staffId, dayIdx }
+    let chartFteInstance = null;
+    let chartMicroInstance = null;
+    let chartFerieInstance = null;
+
+    // =========================================================================
+    // 3. PERSISTENZA STATO (Gemini Notebook API)
+    // =========================================================================
+    async function persistState() {
+      if (window.notebookAppApi && typeof window.notebookAppApi.setAppState === `function`) {
+        try {
+          await window.notebookAppApi.setAppState(appState);
+        } catch (err) {
+          console.warn(`Impossibile salvare stato:`, err);
+        }
+      }
+    }
+
+    async function loadPersistedState() {
+      if (window.notebookAppApi && typeof window.notebookAppApi.getAppState === `function`) {
+        try {
+          const saved = await window.notebookAppApi.getAppState();
+          if (saved && Array.isArray(saved.staff)) {
+            appState = saved;
+            if (!appState.supabaseConfig) {
+              appState.supabaseConfig = {
+                url: SUPABASE_CONFIG.SUPABASE_URL,
+                anonKey: SUPABASE_CONFIG.SUPABASE_ANON_KEY
+              };
+            }
+          }
+        } catch (err) {
+          console.warn(`Impossibile ripristinare stato:`, err);
+        }
+      }
+    }
+
+    // =========================================================================
+    // 4. INTEGRAZIONE SUPABASE (Viste Analitiche + RPC Pubblicazione & Push)
+    // =========================================================================
+    function isValidLiveConfig(url, key) {
+      return Boolean(
+        url &&
+        key &&
+        url.startsWith(`https://`) &&
+        !url.includes(`example.com`) &&
+        !key.includes(`INSERISCI_LA_TUA`)
+      );
+    }
+
+    function loadSupabaseSdkScript() {
+      return new Promise((resolve, reject) => {
+        if (window.supabase && typeof window.supabase.createClient === `function`) {
+          resolve(window.supabase);
+          return;
+        }
+        const script = document.createElement(`script`);
+        script.src = SUPABASE_CONFIG.SDK_CDN_URL;
+        script.async = true;
+        script.onload = () => {
+          if (window.supabase && typeof window.supabase.createClient === `function`) {
+            resolve(window.supabase);
+          } else {
+            reject(new Error(`SDK Supabase caricato ma createClient non disponibile.`));
+          }
+        };
+        script.onerror = () => reject(new Error(`Impossibile caricare SDK Supabase da CDN in questo ambiente.`));
+        document.head.appendChild(script);
+      });
+    }
+
+    async function initSupabaseClient() {
+      const cfg = appState.supabaseConfig || {};
+      const url = (cfg.url || SUPABASE_CONFIG.SUPABASE_URL || ``).trim();
+      const key = (cfg.anonKey || SUPABASE_CONFIG.SUPABASE_ANON_KEY || ``).trim();
+
+      if (!isValidLiveConfig(url, key)) {
+        isSupabaseLive = false;
+        supabaseClient = null;
+        updateSupabaseBadgeUI();
+        return false;
+      }
+
+      try {
+        const sdk = await loadSupabaseSdkScript();
+        supabaseClient = sdk.createClient(url, key);
+        isSupabaseLive = true;
+        updateSupabaseBadgeUI();
+        return true;
+      } catch (err) {
+        isSupabaseLive = false;
+        supabaseClient = null;
+        updateSupabaseBadgeUI();
+        showToast(`Connessione Supabase non riuscita in questo sandbox (${err.message}). Attiva modalità Demo Locale.`, `warn`);
+        return false;
+      }
+    }
+
+    function updateSupabaseBadgeUI() {
+      const lbl = document.getElementById(`supabase-status-label`);
+      const modalText = document.getElementById(`supabase-modal-mode-text`);
+      if (lbl) {
+        lbl.textContent = isSupabaseLive ? `Supabase Live Connesso` : `Demo Locale · Configura Supabase`;
+      }
+      if (modalText) {
+        modalText.textContent = isSupabaseLive
+          ? `Connesso a Supabase (${appState.supabaseConfig.url})`
+          : `Modalità Demo Locale (inserisci credenziali reali per attivare le viste analitiche live)`;
+      }
+    }
+
+    async function syncFromSupabaseViews() {
+      if (!isSupabaseLive || !supabaseClient) {
+        showToast(`Modalità Demo attiva: inserisci prima URL e Anon Key reali di Supabase per interrogare le viste.`, `warn`);
+        return;
+      }
+      try {
+        const unitFilter = appState.selectedUnit;
+        const qFte = supabaseClient.from(SUPABASE_CONFIG.VIEWS.FTE_HEATMAP).select(`*`);
+        const qMicro = supabaseClient.from(SUPABASE_CONFIG.VIEWS.MICRO_ASSENZE).select(`*`);
+        const qFerie = supabaseClient.from(SUPABASE_CONFIG.VIEWS.FERIE_QUADRIMESTRALI).select(`*`);
+        const qSkills = supabaseClient.from(SUPABASE_CONFIG.VIEWS.COMPETENZE_PERF).select(`*`);
+        const qTurni = supabaseClient.from(SUPABASE_CONFIG.VIEWS.TURNI).select(`*`);
+
+        if (unitFilter !== `ALL`) {
+          qFte.eq(`reparto_cod`, unitFilter);
+          qMicro.eq(`reparto_cod`, unitFilter);
+          qFerie.eq(`reparto_cod`, unitFilter);
+          qSkills.eq(`reparto_cod`, unitFilter);
+          qTurni.eq(`reparto_cod`, unitFilter);
+        }
+
+        const results = await Promise.all([qFte, qMicro, qFerie, qSkills, qTurni]);
+        const errors = results.filter(r => r.error).map(r => r.error.message);
+        if (errors.length > 0) {
+          throw new Error(errors.join(` | `));
+        }
+        showToast(`Viste analitiche Supabase sincronizzate con successo.`, `ok`);
+      } catch (err) {
+        showToast(`Errore lettura viste Supabase: ${err.message}`, `alert`);
+      }
+    }
+
+    // =========================================================================
+    // 5. LOGICA NORMATIVA D.LGS. 66/2003 & CALCOLI TABELLONE H24
+    // =========================================================================
+    function getDaysList() {
+      return appState.selectedPeriod === `2026-12` ? DAYS_DEC : DAYS_NOV;
+    }
+
+    function getShiftArray(staffObj) {
+      return appState.selectedPeriod === `2026-12` ? staffObj.shiftsDec : staffObj.shiftsNov;
+    }
+
+    function getDraftMap(staffObj) {
+      if (appState.selectedPeriod === `2026-12`) {
+        if (!staffObj.draftsDec) staffObj.draftsDec = {};
+        return staffObj.draftsDec;
+      }
+      if (!staffObj.draftsNov) staffObj.draftsNov = {};
+      return staffObj.draftsNov;
+    }
+
+    function getEffectiveShift(staffObj, dayIdx) {
+      const drafts = getDraftMap(staffObj);
+      if (Object.prototype.hasOwnProperty.call(drafts, dayIdx)) {
+        return drafts[dayIdx];
+      }
+      return getShiftArray(staffObj)[dayIdx];
+    }
+
+    function detectViolationsForStaff(staffObj) {
+      const violations = [];
+      const days = getDaysList();
+      const codes = days.map((_, idx) => getEffectiveShift(staffObj, idx));
+
+      for (let i = 0; i < codes.length - 1; i++) {
+        const curr = codes[i];
+        const next = codes[i + 1];
+        // P (14-21) -> M (07-14) = 10h riposo (< 11h obbligatorie ex art. 7 D.Lgs. 66/2003)
+        if (curr === `P` && next === `M`) {
+          violations.push({
+            staffId: staffObj.id,
+            staffName: staffObj.name,
+            dayIdx: i + 1,
+            dayLabel: days[i + 1].label,
+            reason: `Rientro P→M (10h di riposo < 11h minime ex art. 7 D.Lgs. 66/2003)`
+          });
+        }
+        // N (21-07) -> M (07-14) o P (14-21) senza Smonto S
+        if (curr === `N` && (next === `M` || next === `P`)) {
+          violations.push({
+            staffId: staffObj.id,
+            staffName: staffObj.name,
+            dayIdx: i + 1,
+            dayLabel: days[i + 1].label,
+            reason: `Turno ${next} subito dopo Notte senza Smonto S (riposo insufficiente)`
+          });
+        }
+        // Doppia Notte consecutiva (N -> N)
+        if (curr === `N` && next === `N`) {
+          violations.push({
+            staffId: staffObj.id,
+            staffName: staffObj.name,
+            dayIdx: i + 1,
+            dayLabel: days[i + 1].label,
+            reason: `Due turni Notte consecutivi oltre il limite ordinario notturno`
+          });
+        }
+      }
+
+      // Verifica riposo settimanale su finestra di 7 giorni
+      for (let start = 0; start <= codes.length - 7; start += 7) {
+        const weekSlice = codes.slice(start, start + 7);
+        const hasRest = weekSlice.some(c => c === `R` || c === `FE` || c === `S`);
+        if (!hasRest) {
+          violations.push({
+            staffId: staffObj.id,
+            staffName: staffObj.name,
+            dayIdx: start + 6,
+            dayLabel: days[start + 6].label,
+            reason: `Assenza di riposo settimanale di 24h nella settimana (art. 9 D.Lgs. 66/2003)`
+          });
+        }
+        const weekHours = weekSlice.reduce((acc, c) => acc + (SHIFT_HOURS[c] || 0), 0);
+        if (weekHours > 48) {
+          violations.push({
+            staffId: staffObj.id,
+            staffName: staffObj.name,
+            dayIdx: start + 6,
+            dayLabel: days[start + 6].label,
+            reason: `Superamento tetto massimo 48h settimanali (${weekHours.toFixed(1)}h)`
+          });
+        }
+      }
+
+      return violations;
+    }
+
+    function getFilteredStaff() {
+      return appState.staff.filter(s => {
+        if (appState.selectedUnit !== `ALL` && s.unit !== appState.selectedUnit) return false;
+        return true;
+      });
+    }
+
+    function countAllDrafts() {
+      let count = 0;
+      appState.staff.forEach(s => {
+        const drafts = getDraftMap(s);
+        count += Object.keys(drafts).length;
+      });
+      return count;
+    }
+
+    // =========================================================================
+    // 6. NAVIGAZIONE & CONTROLLI GLOBALI
+    // =========================================================================
+    function switchTab(tabId) {
+      appState.activeTab = tabId;
+      const tabs = [`roster`, `fte`, `micro`, `ferie`, `skills`];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const panel = document.getElementById(`panel-${t}`);
+        if (btn) {
+          const active = t === tabId;
+          btn.classList.toggle(`active`, active);
+          btn.setAttribute(`aria-selected`, active ? `true` : `false`);
+        }
+        if (panel) {
+          panel.classList.toggle(`active`, t === tabId);
+        }
+      });
+      renderActiveTab();
+      persistState();
+    }
+
+    function onGlobalFilterChange() {
+      const unitEl = document.getElementById(`global-unit-filter`);
+      const periodEl = document.getElementById(`global-period-filter`);
+      if (unitEl) appState.selectedUnit = unitEl.value;
+      if (periodEl) appState.selectedPeriod = periodEl.value;
+      selectedCell = null;
+      closeShiftEditor();
+      renderAll();
+      persistState();
+    }
+
+    function renderActiveTab() {
+      if (appState.activeTab === `roster`) renderRosterView();
+      if (appState.activeTab === `fte`) renderFteView();
+      if (appState.activeTab === `micro`) renderMicroAbsenceView();
+      if (appState.activeTab === `ferie`) renderFerieView();
+      if (appState.activeTab === `skills`) renderSkillsView();
+    }
+
+    function renderAll() {
+      updateTopBadges();
+      renderRosterView();
+      renderFteView();
+      renderMicroAbsenceView();
+      renderFerieView();
+      renderSkillsView();
+    }
+
+    function updateTopBadges() {
+      const draftCount = countAllDrafts();
+      const draftBadge = document.getElementById(`badge-draft-count`);
+      if (draftBadge) {
+        draftBadge.textContent = `${draftCount} ${draftCount === 1 ? `BOZZA` : `BOZZE`}`;
+        draftBadge.classList.toggle(`has-alert`, draftCount > 0);
+      }
+
+      const redSlots = appState.fteUnits
+        .filter(u => appState.selectedUnit === `ALL` || u.unit === appState.selectedUnit)
+        .reduce((sum, u) => sum + u.slots.filter(sl => sl.tier === `RED`).length, 0);
+      const redBadge = document.getElementById(`badge-red-units`);
+      if (redBadge) {
+        redBadge.textContent = `${redSlots} CRITICI`;
+      }
+    }
+
+    // =========================================================================
+    // 7. RENDER SCHEDA 1: TABELLONE TURNI H24 & RPC PUBBLICAZIONE
+    // =========================================================================
+    function renderRosterView() {
+      const days = getDaysList();
+      const roleFilterEl = document.getElementById(`roster-role-filter`);
+      const roleFilter = roleFilterEl ? roleFilterEl.value : `ALL`;
+
+      let staffList = getFilteredStaff().filter(s => roleFilter === `ALL` || s.role === roleFilter);
+      if (appState.showDraftsOnly) {
+        staffList = staffList.filter(s => Object.keys(getDraftMap(s)).length > 0);
+      }
+
+      // Header giorni
+      const thead = document.getElementById(`roster-thead`);
+      if (thead) {
+        let thHtml = `<tr><th>Operatore &amp; Qualifica</th><th>Rep.</th><th>Ore 14gg / Contr.</th>`;
+        days.forEach(d => {
+          thHtml += `<th class="day-col ${d.weekend ? `weekend` : ``}">${d.label}</th>`;
+        });
+        thHtml += `</tr>`;
+        thead.innerHTML = thHtml;
+      }
+
+      // Calcolo violazioni su tutto l'organico filtrato
+      let allViolations = [];
+      let totalRequiredSlots = 0;
+      let totalCoveredSlots = 0;
+
+      const tbody = document.getElementById(`roster-tbody`);
+      if (tbody) {
+        if (staffList.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${days.length + 3}" style="text-align:center; padding: 2rem; color: var(--on-surface-variant);">Nessun operatore corrisponde ai filtri attuali. Disattiva "Mostra solo BOZZE" o cambia reparto.</td></tr>`;
+        } else {
+          let rowsHtml = ``;
+          staffList.forEach(s => {
+            const drafts = getDraftMap(s);
+            const staffViolations = detectViolationsForStaff(s);
+            allViolations = allViolations.concat(staffViolations);
+            const violationDays = new Set(staffViolations.map(v => v.dayIdx));
+
+            let totalHours14 = 0;
+            days.forEach((_, idx) => {
+              totalHours14 += SHIFT_HOURS[getEffectiveShift(s, idx)] || 0;
+            });
+            const target14 = s.contractHours * 2;
+            const delta = totalHours14 - target14;
+            const deltaLabel = delta >= 0 ? `+${delta.toFixed(0)}h` : `${delta.toFixed(0)}h`;
+
+            rowsHtml += `<tr>`;
+            rowsHtml += `<td><strong>${s.name}</strong><div style="font-size:0.78rem; color:var(--on-surface-variant);">${s.role} · ${s.notes}</div></td>`;
+            rowsHtml += `<td><span class="chip" data-status="info">${s.unit}</span></td>`;
+            rowsHtml += `<td class="num"><strong>${totalHours14.toFixed(0)}h</strong> / ${target14}h <span style="font-size:0.76rem; color:${Math.abs(delta) > 8 ? `var(--error)` : `var(--on-surface-variant)`}">(${deltaLabel})</span></td>`;
+
+            days.forEach((d, idx) => {
+              const code = getEffectiveShift(s, idx);
+              const isDraft = Object.prototype.hasOwnProperty.call(drafts, idx);
+              const isViolation = violationDays.has(idx);
+              if (code === `M` || code === `P` || code === `N`) {
+                totalCoveredSlots++;
+              }
+              totalRequiredSlots++;
+
+              rowsHtml += `<td class="day-cell">
+                <button type="button"
+                  class="shift-pill ${isDraft ? `is-draft` : ``} ${isViolation ? `is-violation` : ``}"
+                  data-code="${code}"
+                  onclick="openShiftEditor('${s.id}', ${idx})"
+                  title="${s.name} · ${d.label} · ${code}${isDraft ? ` (BOZZA)` : ``}">
+                  <span>${code}</span>
+                  ${isDraft ? `<span class="draft-tag">bozza</span>` : ``}
+                </button>
+              </td>`;
+            });
+            rowsHtml += `</tr>`;
+          });
+          tbody.innerHTML = rowsHtml;
+        }
+      }
+
+      // KPI Tabellone
+      const draftCount = countAllDrafts();
+      const kpiDrafts = document.getElementById(`kpi-roster-drafts`);
+      const kpiDraftsCap = document.getElementById(`kpi-roster-drafts-cap`);
+      if (kpiDrafts) kpiDrafts.textContent = String(draftCount);
+      if (kpiDraftsCap) {
+        kpiDraftsCap.textContent = draftCount > 0
+          ? `${draftCount} turni in BOZZA pronti per 'Pubblica Modifiche'`
+          : `Tutte le modifiche risultano pubblicate`;
+        kpiDraftsCap.className = `kpi-caption ${draftCount > 0 ? `warn` : `ok`}`;
+      }
+
+      const kpiViolations = document.getElementById(`kpi-roster-violations`);
+      const kpiViolationsCap = document.getElementById(`kpi-roster-violations-cap`);
+      const kpiCardViol = document.getElementById(`kpi-card-violations`);
+      if (kpiViolations) kpiViolations.textContent = String(allViolations.length);
+      if (kpiViolationsCap) {
+        kpiViolationsCap.textContent = allViolations.length > 0
+          ? `${allViolations.length} anomalie riposo/tetto orario rilevate`
+          : `Conforme a D.Lgs. 66/2003 (11h riposo & ≤48h/sett.)`;
+        kpiViolationsCap.className = `kpi-caption ${allViolations.length > 0 ? `alert` : `ok`}`;
+      }
+      if (kpiCardViol) {
+        kpiCardViol.setAttribute(`data-status`, allViolations.length > 0 ? `alert` : `ok`);
+      }
+
+      const covPct = totalRequiredSlots > 0 ? Math.min(100, Math.round((totalCoveredSlots / (totalRequiredSlots * 0.56)) * 100)) : 96;
+      const kpiCov = document.getElementById(`kpi-roster-coverage`);
+      if (kpiCov) kpiCov.textContent = `${covPct}%`;
+
+      const lastPubEl = document.getElementById(`kpi-roster-last-pub`);
+      if (lastPubEl && appState.lastPublishedAt) {
+        lastPubEl.textContent = `Ultimo invio RPC: ${appState.lastPublishedAt}`;
+      }
+
+      // Box Conformità D.Lgs. 66/2003
+      const compBox = document.getElementById(`roster-compliance-box`);
+      if (compBox) {
+        if (allViolations.length === 0) {
+          compBox.innerHTML = `<div class="callout" data-status="info"><div><strong>Verifica Normativa D.Lgs. 66/2003 superata:</strong> nessun rientro inferiore a 11 ore consecutive e rispetto del riposo settimanale di 24 ore.</div></div>`;
+        } else {
+          const items = allViolations.map(v => `<li><strong>${v.staffName} (${v.dayLabel}):</strong> ${v.reason}</li>`).join(``);
+          compBox.innerHTML = `<div class="callout" data-status="alert"><div><strong>Allerta Conformità D.Lgs. 66/2003 (${allViolations.length}):</strong><ul style="margin:0.35rem 0 0 1.2rem; padding:0;">${items}</ul></div></div>`;
+        }
+      }
+
+      renderPushLogs();
+      updateTopBadges();
+    }
+
+    function openShiftEditor(staffId, dayIdx) {
+      const s = appState.staff.find(item => item.id === staffId);
+      if (!s) return;
+      const days = getDaysList();
+      const day = days[dayIdx];
+      selectedCell = { staffId, dayIdx };
+
+      const bar = document.getElementById(`shift-editor-bar`);
+      const nameEl = document.getElementById(`editor-staff-name`);
+      const dayEl = document.getElementById(`editor-day-label`);
+      const stateEl = document.getElementById(`editor-current-state`);
+      const drafts = getDraftMap(s);
+      const isDraft = Object.prototype.hasOwnProperty.call(drafts, dayIdx);
+      const currentCode = getEffectiveShift(s, dayIdx);
+
+      if (nameEl) nameEl.textContent = `${s.name} (${s.unit})`;
+      if (dayEl) dayEl.textContent = `${day.label} · Attuale: ${currentCode}`;
+      if (stateEl) {
+        stateEl.textContent = isDraft ? `BOZZA` : `PUBBLICATO`;
+        stateEl.setAttribute(`data-status`, isDraft ? `warn` : `ok`);
+      }
+      if (bar) bar.style.display = `flex`;
+    }
+
+    function closeShiftEditor() {
+      selectedCell = null;
+      const bar = document.getElementById(`shift-editor-bar`);
+      if (bar) bar.style.display = `none`;
+    }
+
+    function applyShiftCode(newCode) {
+      if (!selectedCell) return;
+      const s = appState.staff.find(item => item.id === selectedCell.staffId);
+      if (!s) return;
+
+      const baseArr = getShiftArray(s);
+      const drafts = getDraftMap(s);
+      if (baseArr[selectedCell.dayIdx] === newCode) {
+        delete drafts[selectedCell.dayIdx];
+      } else {
+        drafts[selectedCell.dayIdx] = newCode;
+      }
+
+      openShiftEditor(s.id, selectedCell.dayIdx);
+      renderRosterView();
+      persistState();
+    }
+
+    function filterDraftsOnly() {
+      appState.showDraftsOnly = !appState.showDraftsOnly;
+      const btn = document.getElementById(`btn-filter-drafts`);
+      if (btn) {
+        btn.textContent = appState.showDraftsOnly ? `Mostra tutti i turni` : `Mostra solo BOZZE`;
+      }
+      renderRosterView();
+    }
+
+    function toggleDraftFilter() {
+      filterDraftsOnly();
+    }
+
+    function scrollToViolations() {
+      const box = document.getElementById(`roster-compliance-box`);
+      if (box) box.scrollIntoView({ behavior: `smooth`, block: `center` });
+    }
+
+    function discardDrafts(btn) {
+      const total = countAllDrafts();
+      if (total === 0) {
+        showToast(`Non ci sono turni in BOZZA da annullare.`, `info`);
+        return;
+      }
+      if (btn && btn.dataset.armed !== `true`) {
+        btn.dataset.armed = `true`;
+        btn.textContent = `Conferma Annulla (${total})`;
+        setTimeout(() => {
+          if (btn.dataset.armed === `true`) {
+            btn.dataset.armed = `false`;
+            btn.textContent = `Annulla Bozze`;
+          }
+        }, 4000);
+        return;
+      }
+      if (btn) {
+        btn.dataset.armed = `false`;
+        btn.textContent = `Annulla Bozze`;
+      }
+      appState.staff.forEach(s => {
+        if (appState.selectedPeriod === `2026-12`) s.draftsDec = {};
+        else s.draftsNov = {};
+      });
+      closeShiftEditor();
+      renderRosterView();
+      persistState();
+      showToast(`Bozze ripristinate all'ultimo stato pubblicato.`, `info`);
+    }
+
+    async function publishShiftDrafts() {
+      const draftTotal = countAllDrafts();
+      if (draftTotal === 0) {
+        showToast(`Nessuna modifica in BOZZA da pubblicare.`, `info`);
+        return;
+      }
+
+      // Verifica bloccante su violazioni critiche prima della pubblicazione RPC
+      const affectedStaff = [];
+      let criticalViolations = 0;
+
+      appState.staff.forEach(s => {
+        const drafts = getDraftMap(s);
+        const keys = Object.keys(drafts);
+        if (keys.length > 0) {
+          affectedStaff.push({ id: s.id, name: s.name, changes: keys.length });
+          const v = detectViolationsForStaff(s);
+          criticalViolations += v.length;
+        }
+      });
+
+      const rpcPayload = {
+        p_reparto_cod: appState.selectedUnit,
+        p_periodo: appState.selectedPeriod,
+        p_num_modifiche: draftTotal,
+        p_operatori_coinvolti: affectedStaff.map(a => a.id),
+        p_invia_notifica_push: true,
+        p_forza_con_deroga_art17: criticalViolations > 0
+      };
+
+      // Se connesso a Supabase Live, esegui chiamata RPC reale
+      let rpcModeLabel = `Simulazione Locale`;
+      if (isSupabaseLive && supabaseClient) {
+        try {
+          const { data, error } = await supabaseClient.rpc(SUPABASE_CONFIG.RPC_PUBLISH, rpcPayload);
+          if (error) throw error;
+          rpcModeLabel = `Supabase RPC Live (${data ? `OK` : `Eseguito`})`;
+        } catch (err) {
+          showToast(`Errore RPC Supabase: ${err.message}`, `alert`);
+          return;
+        }
+      }
+
+      // Promuovi tutte le bozze a turni pubblicati
+      appState.staff.forEach(s => {
+        const baseArr = getShiftArray(s);
+        const drafts = getDraftMap(s);
+        Object.keys(drafts).forEach(idxStr => {
+          const idx = Number(idxStr);
+          baseArr[idx] = drafts[idxStr];
+        });
+        if (appState.selectedPeriod === `2026-12`) s.draftsDec = {};
+        else s.draftsNov = {};
+      });
+
+      const nowStr = new Date().toLocaleString(`it-IT`, { day: `2-digit`, month: `2-digit`, year: `numeric`, hour: `2-digit`, minute: `2-digit` });
+      appState.lastPublishedAt = nowStr;
+
+      appState.pushLogs.unshift({
+        timestamp: nowStr,
+        unit: appState.selectedUnit === `ALL` ? `Tutti i reparti` : UNIT_LABELS[appState.selectedUnit],
+        publishedCount: draftTotal,
+        notifiedUsers: affectedStaff.length,
+        status: criticalViolations > 0 ? `PUBBLICATO CON DEROGA` : `CONFERMATO`,
+        note: `${rpcModeLabel} · Push notifiche inviate a: ${affectedStaff.map(a => a.name).join(`, `)}.`
+      });
+
+      const badge = document.getElementById(`rpc-log-badge`);
+      if (badge) {
+        badge.textContent = `Pubblicato · ${nowStr}`;
+        badge.setAttribute(`data-status`, `ok`);
+      }
+
+      closeShiftEditor();
+      renderRosterView();
+      persistState();
+      showToast(`Pubblicate ${draftTotal} modifiche turno. Inviate ${affectedStaff.length} notifiche push ai dipendenti.`, `ok`);
+    }
+
+    function renderPushLogs() {
+      const container = document.getElementById(`push-log-list`);
+      if (!container) return;
+      if (!appState.pushLogs || appState.pushLogs.length === 0) {
+        container.innerHTML = `<p style="color:var(--on-surface-variant);">Nessuna pubblicazione registrata.</p>`;
+        return;
+      }
+      let html = `<div class="table-wrap"><table><thead><tr><th>Data / Ora</th><th>Reparto</th><th>Modifiche</th><th>Push Inviate</th><th>Esito RPC</th><th>Dettaglio</th></tr></thead><tbody>`;
+      appState.pushLogs.slice(0, 6).forEach(log => {
+        const st = log.status.includes(`DEROGA`) ? `warn` : `ok`;
+        html += `<tr>
+          <td class="num">${log.timestamp}</td>
+          <td>${log.unit}</td>
+          <td class="num">${log.publishedCount}</td>
+          <td class="num">${log.notifiedUsers} app</td>
+          <td><span class="chip" data-status="${st}">${log.status}</span></td>
+          <td>${log.note}</td>
+        </tr>`;
+      });
+      html += `</tbody></table></div>`;
+      container.innerHTML = html;
+    }
+
+    // =========================================================================
+    // 8. RENDER SCHEDA 2: CRUSCOTTO FTE & HEATMAP CRITICITÀ ORGANICO
+    // =========================================================================
+    function renderFteView() {
+      const units = appState.fteUnits.filter(u => appState.selectedUnit === `ALL` || u.unit === appState.selectedUnit);
+
+      const totTheo = units.reduce((a, b) => a + b.theoreticalFte, 0);
+      const totEff = units.reduce((a, b) => a + b.effectiveFte, 0);
+      const totOvertime = units.reduce((a, b) => a + b.overtimeHours, 0);
+      const redCount = units.reduce((a, b) => a + b.slots.filter(s => s.tier === `RED`).length, 0);
+      const blueCount = units.reduce((a, b) => a + b.slots.filter(s => s.tier === `BLUE`).length, 0);
+      const gap = totEff - totTheo;
+      const gapPct = totTheo > 0 ? ((gap / totTheo) * 100).toFixed(1) : `0.0`;
+
+      const elRatio = document.getElementById(`kpi-fte-ratio`);
+      const elGap = document.getElementById(`kpi-fte-gap`);
+      const elRed = document.getElementById(`kpi-fte-red`);
+      const elOt = document.getElementById(`kpi-fte-overtime`);
+      const elBlue = document.getElementById(`kpi-fte-blue`);
+
+      if (elRatio) elRatio.textContent = `${totEff.toFixed(1)} / ${totTheo.toFixed(1)}`;
+      if (elGap) elGap.textContent = `Gap ${gap.toFixed(1)} FTE (${gapPct}%) per assenze e limitazioni`;
+      if (elRed) elRed.textContent = `${redCount} slot`;
+      if (elOt) elOt.textContent = `${totOvertime} h`;
+      if (elBlue) elBlue.textContent = `${blueCount} slot`;
+
+      const tbody = document.getElementById(`fte-heatmap-tbody`);
+      if (tbody) {
+        let html = ``;
+        units.forEach(u => {
+          const hasRed = u.slots.some(s => s.tier === `RED`);
+          const hasYellow = u.slots.some(s => s.tier === `YELLOW`);
+          const unitBadge = hasRed
+            ? `<span class="chip" data-status="alert">Rosso · Critico</span>`
+            : hasYellow
+              ? `<span class="chip" data-status="warn">Giallo · Attenzione</span>`
+              : `<span class="chip" data-status="ok">Verde · Equilibrato</span>`;
+
+          html += `<tr>
+            <td><strong>${u.name}</strong><div style="font-size:0.76rem; color:var(--on-surface-variant);">Fabbisogno: ${u.requiredFte.toFixed(1)} FTE</div></td>
+            <td class="num"><strong>${u.effectiveFte.toFixed(1)}</strong> / ${u.theoreticalFte.toFixed(1)}</td>`;
+
+          u.slots.forEach(sl => {
+            const key = `${u.unit}|${sl.label}`;
+            const isSel = appState.selectedHeatmapKey === key;
+            const tierIt = sl.tier === `RED` ? `Rosso` : sl.tier === `YELLOW` ? `Giallo` : sl.tier === `GREEN` ? `Verde` : `Blu`;
+            html += `<td>
+              <button type="button" class="hm-cell ${isSel ? `selected` : ``}" data-tier="${sl.tier}" onclick="selectHeatmapCell('${u.unit}', '${sl.label}')">
+                <span>${sl.pct}%</span>
+                <span class="hm-sub">${tierIt}</span>
+              </button>
+            </td>`;
+          });
+          html += `<td>${unitBadge}</td></tr>`;
+        });
+        tbody.innerHTML = html;
+      }
+
+      renderHeatmapDrilldown(units);
+      renderFteChart(units);
+    }
+
+    function selectHeatmapCell(unitCode, slotLabel) {
+      appState.selectedHeatmapKey = `${unitCode}|${slotLabel}`;
+      renderFteView();
+      persistState();
+    }
+
+    function renderHeatmapDrilldown(units) {
+      const parts = (appState.selectedHeatmapKey || ``).split(`|`);
+      let unit = units.find(u => u.unit === parts[0]) || units[0];
+      if (!unit) return;
+      let slot = unit.slots.find(s => s.label === parts[1]) || unit.slots[0];
+
+      const titleEl = document.getElementById(`fte-detail-title`);
+      const subEl = document.getElementById(`fte-detail-subtitle`);
+      const badgeEl = document.getElementById(`fte-detail-badge`);
+      const bodyEl = document.getElementById(`fte-detail-body`);
+
+      const statusMap = { RED: `alert`, YELLOW: `warn`, GREEN: `ok`, BLUE: `blue` };
+      const labelMap = { RED: `Critico (Rosso)`, YELLOW: `Attenzione (Giallo)`, GREEN: `Ottimale (Verde)`, BLUE: `Surplus (Blu)` };
+
+      if (titleEl) titleEl.textContent = `${unit.name} · ${slot.label}`;
+      if (subEl) subEl.textContent = `Copertura effettiva rispetto al fabbisogno minimo di fascia`;
+      if (badgeEl) {
+        badgeEl.textContent = labelMap[slot.tier];
+        badgeEl.setAttribute(`data-status`, statusMap[slot.tier]);
+      }
+
+      const actionSuggestion = slot.tier === `RED`
+        ? `Attivare riallocazione da fascia Blu (Terapia Intensiva) o ricorrere a somministrazione / disponibilità volontaria retribuita per evitare violazioni di riposo.`
+        : slot.tier === `YELLOW`
+          ? `Monitorare banca ore e richieste di cambio turno; mantenere finestra di pubblicazione 4–6 settimane.`
+          : slot.tier === `BLUE`
+            ? `Risorsa eccedente disponibile: pianificare mobilità temporanea inter-reparto o recupero ore aggiornamento ECM.`
+            : `Assetto equilibrato: mantenere rotazione in senso orario (M→P→N→S→R).`;
+
+      if (bodyEl) {
+        bodyEl.innerHTML = `
+          <div style="display:grid; gap:0.85rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span>Presenze disponibili / richieste:</span>
+              <strong class="num">${slot.avail} / ${slot.req} operatori (${slot.pct}%)</strong>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill ${statusMap[slot.tier] === `blue` ? `` : statusMap[slot.tier]}" style="width:${Math.min(100, slot.pct)}%;"></div>
+            </div>
+            <div class="callout" data-status="${statusMap[slot.tier] === `blue` ? `info` : statusMap[slot.tier] === `ok` ? `info` : statusMap[slot.tier]}">
+              <div>
+                <strong>Evidenza operativa:</strong> ${slot.note}<br>
+                <strong>Azione consigliata:</strong> ${actionSuggestion}
+              </div>
+            </div>
+          </div>`;
+      }
+    }
+
+    function renderFteChart(units) {
+      const canvas = document.getElementById(`chart-fte-comparison`);
+      if (!canvas || typeof Chart === `undefined`) return;
+      if (chartFteInstance) chartFteInstance.destroy();
+
+      chartFteInstance = new Chart(canvas.getContext(`2d`), {
+        type: `bar`,
+        data: {
+          labels: units.map(u => u.name),
+          datasets: [
+            {
+              label: `Organico Teorico (FTE)`,
+              data: units.map(u => u.theoreticalFte),
+              backgroundColor: `#b8c7ca`,
+              borderRadius: 4
+            },
+            {
+              label: `FTE Effettivo Disponibile`,
+              data: units.map(u => u.effectiveFte),
+              backgroundColor: `#0f7c8a`,
+              borderRadius: 4
+            },
+            {
+              label: `Fabbisogno Minimo Assistenziale`,
+              data: units.map(u => u.requiredFte),
+              backgroundColor: `#2e7d4f`,
+              borderRadius: 4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: `top` }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: `Unità Equivalent Time (FTE)` }
+            }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 9. RENDER SCHEDA 3: CRUSCOTTO MICRO-ASSENZE (1-3 GIORNI)
+    // =========================================================================
+    function renderMicroAbsenceView() {
+      const durEl = document.getElementById(`micro-duration-filter`);
+      const patEl = document.getElementById(`micro-pattern-filter`);
+      const durFilter = durEl ? durEl.value : `ALL`;
+      const patFilter = patEl ? patEl.value : `ALL`;
+
+      const list = getFilteredStaff().filter(s => {
+        if (patFilter !== `ALL` && s.micro.pattern !== patFilter) return false;
+        if (durFilter !== `ALL`) {
+          const avgDur = Math.round(s.micro.days / Math.max(1, s.micro.episodes));
+          if (String(avgDur) !== durFilter) return false;
+        }
+        return true;
+      });
+
+      const totEp = list.reduce((a, b) => a + b.micro.episodes, 0);
+      const totDays = list.reduce((a, b) => a + b.micro.days, 0);
+      const postNightEp = list
+        .filter(s => s.micro.pattern === `POST_NOTTE` || s.micro.pattern === `RIENTRO_RAPIDO`)
+        .reduce((a, b) => a + b.micro.episodes, 0);
+      const postPct = totEp > 0 ? Math.round((postNightEp / totEp) * 100) : 0;
+
+      const elEp = document.getElementById(`kpi-micro-episodes`);
+      const elPost = document.getElementById(`kpi-micro-postnight`);
+      const elDays = document.getElementById(`kpi-micro-days`);
+      if (elEp) elEp.textContent = String(totEp);
+      if (elPost) elPost.textContent = `${postPct}%`;
+      if (elDays) elDays.textContent = `${totDays} gg`;
+
+      const patLabels = {
+        POST_NOTTE: `Post-turno Notte / Smonto`,
+        RIENTRO_RAPIDO: `Rientro rapido (<12h)`,
+        PONTE: `Adiacente Riposo / Weekend`
+      };
+
+      const tbody = document.getElementById(`micro-absence-tbody`);
+      if (tbody) {
+        let html = ``;
+        list.forEach(s => {
+          const riskStatus = s.micro.risk === `ALTO` ? `alert` : s.micro.risk === `MEDIO` ? `warn` : `ok`;
+          html += `<tr>
+            <td><strong>${s.name}</strong><div style="font-size:0.76rem; color:var(--on-surface-variant);">${s.role}</div></td>
+            <td><span class="chip" data-status="info">${s.unit}</span></td>
+            <td class="num"><strong>${s.micro.episodes}</strong></td>
+            <td class="num">${s.micro.days} gg</td>
+            <td>${patLabels[s.micro.pattern] || s.micro.pattern}</td>
+            <td><span class="chip" data-status="${riskStatus}">${s.micro.risk}</span></td>
+            <td>
+              <button type="button" class="btn btn-sm btn-ghost" onclick="cycleMicroIntervention('${s.id}')">
+                ${s.micro.intervention}
+              </button>
+            </td>
+          </tr>`;
+        });
+        tbody.innerHTML = html || `<tr><td colspan="7" style="text-align:center; padding:1.5rem;">Nessun episodio rilevato con i filtri selezionati.</td></tr>`;
+      }
+
+      renderMicroChart();
+    }
+
+    function cycleMicroIntervention(staffId) {
+      const s = appState.staff.find(x => x.id === staffId);
+      if (!s) return;
+      const steps = [`Da pianificare`, `Colloquio programmato`, `Rotazione alleggerita`, `Monitorato`];
+      const nextIdx = (steps.indexOf(s.micro.intervention) + 1) % steps.length;
+      s.micro.intervention = steps[nextIdx];
+      renderMicroAbsenceView();
+      persistState();
+      showToast(`Stato intervento per ${s.name} aggiornato a "${s.micro.intervention}".`, `ok`);
+    }
+
+    function renderMicroChart() {
+      const canvas = document.getElementById(`chart-micro-absences`);
+      if (!canvas || typeof Chart === `undefined`) return;
+      if (chartMicroInstance) chartMicroInstance.destroy();
+
+      chartMicroInstance = new Chart(canvas.getContext(`2d`), {
+        type: `line`,
+        data: {
+          labels: [`Giu`, `Lug`, `Ago`, `Set`, `Ott`, `Nov`],
+          datasets: [
+            {
+              label: `Pubblicazione a 2 settimane (episodi)`,
+              data: [18, 21, 19, 16, 15, 14],
+              borderColor: `#b3261e`,
+              backgroundColor: `#b3261e`,
+              tension: 0.25,
+              borderWidth: 2.5
+            },
+            {
+              label: `Pubblicazione anticipata 4–6 settimane`,
+              data: [15, 14, 12, 11, 9, 8],
+              borderColor: `#0f7c8a`,
+              backgroundColor: `#0f7c8a`,
+              tension: 0.25,
+              borderWidth: 2.5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: `top` }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: `Episodi mensili (1–3 gg)` }
+            }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 10. RENDER SCHEDA 4: CRUSCOTTO FERIE QUADRIMESTRALI (FEB-GEN & Q2 15 GG)
+    // =========================================================================
+    function renderFerieView() {
+      const filterEl = document.getElementById(`ferie-status-filter`);
+      const filterVal = filterEl ? filterEl.value : `ALL`;
+      const allStaff = getFilteredStaff();
+
+      const compliantCount = allStaff.filter(s => s.ferie.maxBlockQ2 >= 15).length;
+      const nonCompliantCount = allStaff.length - compliantCount;
+      const totAp = allStaff.reduce((a, b) => a + b.ferie.ap, 0);
+      const pct = allStaff.length > 0 ? Math.round((compliantCount / allStaff.length) * 100) : 0;
+
+      const elComp = document.getElementById(`kpi-ferie-compliance`);
+      const elCompCap = document.getElementById(`kpi-ferie-compliance-cap`);
+      const elNonComp = document.getElementById(`kpi-ferie-noncompliant`);
+      const elAp = document.getElementById(`kpi-ferie-ap`);
+      const cardQ2 = document.getElementById(`kpi-ferie-q2-card`);
+
+      if (elComp) elComp.textContent = `${pct}%`;
+      if (elCompCap) elCompCap.textContent = `${compliantCount} su ${allStaff.length} operatori conformi (Giu–Set)`;
+      if (elNonComp) elNonComp.textContent = String(nonCompliantCount);
+      if (elAp) elAp.textContent = `${totAp} gg`;
+      if (cardQ2) cardQ2.setAttribute(`data-status`, nonCompliantCount > 0 ? `warn` : `ok`);
+
+      const visibleStaff = allStaff.filter(s => {
+        const isOk = s.ferie.maxBlockQ2 >= 15;
+        if (filterVal === `CONFORME`) return isOk;
+        if (filterVal === `NON_CONFORME`) return !isOk;
+        return true;
+      });
+
+      const tbody = document.getElementById(`ferie-tbody`);
+      if (tbody) {
+        let html = ``;
+        visibleStaff.forEach(s => {
+          const isOk = s.ferie.maxBlockQ2 >= 15;
+          const badge = isOk
+            ? `<span class="chip" data-status="ok">Conforme ≥15 gg</span>`
+            : `<span class="chip" data-status="alert">Non Conforme (&lt;15 gg)</span>`;
+
+          html += `<tr>
+            <td><strong>${s.name}</strong><div style="font-size:0.76rem; color:var(--on-surface-variant);">${s.role}</div></td>
+            <td><span class="chip" data-status="info">${s.unit}</span></td>
+            <td class="num">${s.ferie.ap} gg</td>
+            <td class="num">${s.ferie.maturate} gg</td>
+            <td class="num">${s.ferie.q1} gg</td>
+            <td class="num"><strong>${s.ferie.q2} gg</strong></td>
+            <td class="num">
+              <input type="number" min="0" max="30" value="${s.ferie.maxBlockQ2}"
+                style="width:74px; min-height:36px; padding:0.25rem 0.45rem;"
+                aria-label="Blocco continuativo Q2 per ${s.name}"
+                onchange="updateQ2Block('${s.id}', this.value)">
+            </td>
+            <td class="num">${s.ferie.q3} gg</td>
+            <td>${badge}</td>
+            <td>
+              ${!isOk
+                ? `<button type="button" class="btn btn-sm btn-primary" onclick="fixQ2SummerBlock('${s.id}')">Assegna 15 gg Q2</button>`
+                : `<span style="font-size:0.8rem; color:var(--on-surface-variant);">Verificato</span>`}
+            </td>
+          </tr>`;
+        });
+        tbody.innerHTML = html;
+      }
+
+      renderFerieChart(allStaff);
+    }
+
+    function updateQ2Block(staffId, val) {
+      const s = appState.staff.find(x => x.id === staffId);
+      if (!s) return;
+      const num = Math.max(0, Math.min(30, Number(val) || 0));
+      s.ferie.maxBlockQ2 = num;
+      if (s.ferie.q2 < num) s.ferie.q2 = num;
+      renderFerieView();
+      persistState();
+    }
+
+    function fixQ2SummerBlock(staffId) {
+      const s = appState.staff.find(x => x.id === staffId);
+      if (!s) return;
+      s.ferie.maxBlockQ2 = 15;
+      if (s.ferie.q2 < 15) s.ferie.q2 = 15;
+      renderFerieView();
+      persistState();
+      showToast(`Blocco estivo di 15 giorni continuativi in Q2 (Giu–Set) assegnato a ${s.name}.`, `ok`);
+    }
+
+    function renderFerieChart(staffList) {
+      const canvas = document.getElementById(`chart-ferie-quadrimestri`);
+      if (!canvas || typeof Chart === `undefined`) return;
+      if (chartFerieInstance) chartFerieInstance.destroy();
+
+      const q1Tot = staffList.reduce((a, b) => a + b.ferie.q1, 0);
+      const q2Tot = staffList.reduce((a, b) => a + b.ferie.q2, 0);
+      const q3Tot = staffList.reduce((a, b) => a + b.ferie.q3, 0);
+
+      chartFerieInstance = new Chart(canvas.getContext(`2d`), {
+        type: `bar`,
+        data: {
+          labels: [`Q1 (Febbraio – Maggio)`, `Q2 Estivo (Giugno – Settembre)`, `Q3 (Ottobre – Gennaio)`],
+          datasets: [
+            {
+              label: `Giornate Ferie Pianificate`,
+              data: [q1Tot, q2Tot, q3Tot],
+              backgroundColor: [`#7b9198`, `#0f7c8a`, `#2e7d4f`],
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: `Totale giorni ferie squadra` }
+            }
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // 11. RENDER SCHEDA 5: MAPPATURA COMPETENZE & SCHEDE PERFORMANCE
+    // =========================================================================
+    function renderSkillsView() {
+      const certFilterEl = document.getElementById(`skills-cert-filter`);
+      const certFilter = certFilterEl ? certFilterEl.value : `ALL`;
+      const allStaff = getFilteredStaff();
+
+      const list = allStaff.filter(s => {
+        if (certFilter === `ALL`) return true;
+        return s.certs.some(c => c.code === certFilter);
+      });
+
+      let totalCerts = 0;
+      let validCerts = 0;
+      let expiringCerts = 0;
+      let expiredCerts = 0;
+      let perfSum = 0;
+
+      allStaff.forEach(s => {
+        s.certs.forEach(c => {
+          totalCerts++;
+          if (c.status === `VALID`) validCerts++;
+          if (c.status === `EXPIRING`) expiringCerts++;
+          if (c.status === `EXPIRED`) expiredCerts++;
+        });
+        const avg = s.perf.dims.reduce((a, b) => a + b, 0) / s.perf.dims.length;
+        perfSum += avg;
+      });
+
+      const validPct = totalCerts > 0 ? Math.round((validCerts / totalCerts) * 100) : 100;
+      const avgPerf = allStaff.length > 0 ? (perfSum / allStaff.length).toFixed(1) : `0.0`;
+
+      const elValid = document.getElementById(`kpi-skills-valid`);
+      const elExp = document.getElementById(`kpi-skills-expiring`);
+      const elExpir = document.getElementById(`kpi-skills-expired`);
+      const elAvg = document.getElementById(`kpi-skills-avg-perf`);
+      if (elValid) elValid.textContent = `${validPct}%`;
+      if (elExp) elExp.textContent = String(expiringCerts);
+      if (elExpir) elExpir.textContent = String(expiredCerts);
+      if (elAvg) elAvg.textContent = `${avgPerf} / 5.0`;
+
+      const tbody = document.getElementById(`skills-tbody`);
+      if (tbody) {
+        let html = ``;
+        list.forEach(s => {
+          const isSel = appState.selectedStaffForPerf === s.id;
+          const avg = (s.perf.dims.reduce((a, b) => a + b, 0) / s.perf.dims.length).toFixed(1);
+          const hasExpired = s.certs.some(c => c.status === `EXPIRED`);
+          const hasExpiring = s.certs.some(c => c.status === `EXPIRING`);
+          const certBadge = hasExpired
+            ? `<span class="chip" data-status="alert">Scaduta</span>`
+            : hasExpiring
+              ? `<span class="chip" data-status="warn">In scadenza</span>`
+              : `<span class="chip" data-status="ok">Valide</span>`;
+
+          const certTags = s.certs.map(c => {
+            const st = c.status === `EXPIRED` ? `alert` : c.status === `EXPIRING` ? `warn` : `info`;
+            return `<span class="chip" data-status="${st}">${c.code}</span>`;
+          }).join(` `);
+
+          html += `<tr style="cursor:pointer; ${isSel ? `background:var(--surface-container);` : ``}" onclick="selectStaffForPerf('${s.id}')">
+            <td><strong>${s.name}</strong></td>
+            <td>${s.role} · <span class="num">${s.unit}</span></td>
+            <td><div style="display:flex; flex-wrap:wrap; gap:0.25rem;">${certTags}</div></td>
+            <td>${certBadge}</td>
+            <td class="num"><strong>${avg}</strong> / 5.0</td>
+          </tr>`;
+        });
+        tbody.innerHTML = html;
+      }
+
+      loadPerformanceForm(appState.selectedStaffForPerf);
+    }
+
+    function selectStaffForPerf(staffId) {
+      appState.selectedStaffForPerf = staffId;
+      renderSkillsView();
+      persistState();
+    }
+
+    function loadPerformanceForm(staffId) {
+      const s = appState.staff.find(x => x.id === staffId) || appState.staff[0];
+      if (!s) return;
+      appState.selectedStaffForPerf = s.id;
+
+      const nameEl = document.getElementById(`perf-card-name`);
+      const roleEl = document.getElementById(`perf-card-role`);
+      const certEl = document.getElementById(`perf-cert-badges`);
+      const notesEl = document.getElementById(`perf-notes`);
+
+      if (nameEl) nameEl.textContent = `Scheda Valutazione · ${s.name}`;
+      if (roleEl) roleEl.textContent = `${s.role} · ${UNIT_LABELS[s.unit]} · ${s.contractHours}h settimanali`;
+
+      if (certEl) {
+        certEl.innerHTML = s.certs.map(c => {
+          const st = c.status === `EXPIRED` ? `alert` : c.status === `EXPIRING` ? `warn` : `ok`;
+          const lbl = c.status === `EXPIRED` ? `Scaduta ${c.exp}` : c.status === `EXPIRING` ? `Scade ${c.exp}` : `Valida ${c.exp}`;
+          return `<span class="chip" data-status="${st}">${c.code} (${lbl})</span>`;
+        }).join(``);
+      }
+
+      for (let i = 1; i <= 5; i++) {
+        const slider = document.getElementById(`perf-dim-${i}`);
+        const valSpan = document.getElementById(`perf-val-${i}`);
+        const v = s.perf.dims[i - 1];
+        if (slider) slider.value = v;
+        if (valSpan) valSpan.textContent = Number(v).toFixed(1);
+      }
+      if (notesEl) notesEl.value = s.perf.note || ``;
+      updatePerfScoreBadge();
+    }
+
+    function onPerfSliderInput() {
+      for (let i = 1; i <= 5; i++) {
+        const slider = document.getElementById(`perf-dim-${i}`);
+        const valSpan = document.getElementById(`perf-val-${i}`);
+        if (slider && valSpan) {
+          valSpan.textContent = Number(slider.value).toFixed(1);
+        }
+      }
+      updatePerfScoreBadge();
+    }
+
+    function updatePerfScoreBadge() {
+      let sum = 0;
+      for (let i = 1; i <= 5; i++) {
+        const slider = document.getElementById(`perf-dim-${i}`);
+        sum += slider ? Number(slider.value) : 4;
+      }
+      const avg = (sum / 5).toFixed(1);
+      const badge = document.getElementById(`perf-card-score-badge`);
+      if (badge) {
+        badge.textContent = `${avg} / 5.0`;
+        badge.setAttribute(`data-status`, Number(avg) >= 4 ? `ok` : Number(avg) >= 3 ? `info` : `warn`);
+      }
+    }
+
+    async function savePerformanceEvaluation() {
+      const s = appState.staff.find(x => x.id === appState.selectedStaffForPerf);
+      if (!s) return;
+
+      const dims = [];
+      for (let i = 1; i <= 5; i++) {
+        const slider = document.getElementById(`perf-dim-${i}`);
+        dims.push(slider ? Number(slider.value) : 4);
+      }
+      const notesEl = document.getElementById(`perf-notes`);
+      s.perf.dims = dims;
+      s.perf.note = notesEl ? notesEl.value.trim() : ``;
+
+      if (isSupabaseLive && supabaseClient) {
+        try {
+          const { error } = await supabaseClient.from(`valutazioni_performance`).upsert({
+            operatore_id: s.id,
+            punteggi_dimensioni: dims,
+            media_finale: dims.reduce((a, b) => a + b, 0) / 5,
+            note_coordinatore: s.perf.note,
+            aggiornato_il: new Date().toISOString()
+          });
+          if (error) throw error;
+        } catch (err) {
+          showToast(`Errore salvataggio Supabase: ${err.message}`, `alert`);
+          return;
+        }
+      }
+
+      const statusEl = document.getElementById(`perf-save-status`);
+      if (statusEl) statusEl.textContent = `Salvata alle ${new Date().toLocaleTimeString(`it-IT`, { hour: `2-digit`, minute: `2-digit` })}`;
+
+      renderSkillsView();
+      persistState();
+      showToast(`Scheda valutazione di ${s.name} salvata.`, `ok`);
+    }
+
+    // =========================================================================
+    // 12. MODAL SUPABASE & EXPORT DEPLOY VERCEL
+    // =========================================================================
+    function openSupabaseModal() {
+      const modal = document.getElementById(`supabase-modal`);
+      const urlInput = document.getElementById(`cfg-supabase-url`);
+      const keyInput = document.getElementById(`cfg-supabase-key`);
+      const sqlPre = document.getElementById(`supabase-sql-preview`);
+
+      if (urlInput) urlInput.value = appState.supabaseConfig.url || SUPABASE_CONFIG.SUPABASE_URL;
+      if (keyInput) keyInput.value = appState.supabaseConfig.anonKey || SUPABASE_CONFIG.SUPABASE_ANON_KEY;
+
+      if (sqlPre) {
+        sqlPre.textContent =
+`// Inizializzazione Client Supabase (Vercel Production)
+// SDK CDN: ${SUPABASE_CONFIG.SDK_CDN_URL}
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Viste Analitiche interrogate:
+// 1. ${SUPABASE_CONFIG.VIEWS.TURNI}
+// 2. ${SUPABASE_CONFIG.VIEWS.FTE_HEATMAP}
+// 3. ${SUPABASE_CONFIG.VIEWS.MICRO_ASSENZE}
+// 4. ${SUPABASE_CONFIG.VIEWS.FERIE_QUADRIMESTRALI}
+// 5. ${SUPABASE_CONFIG.VIEWS.COMPETENZE_PERF}
+
+// Funzione RPC Pubblicazione Turni & Push Notification:
+await client.rpc('${SUPABASE_CONFIG.RPC_PUBLISH}', {
+  p_reparto_cod: 'PS',
+  p_periodo: '2026-11',
+  p_invia_notifica_push: true
+});`;
+      }
+
+      updateSupabaseBadgeUI();
+      if (modal) modal.classList.add(`open`);
+    }
+
+    function closeSupabaseModal() {
+      const modal = document.getElementById(`supabase-modal`);
+      if (modal) modal.classList.remove(`open`);
+    }
+
+    async function applySupabaseConfig() {
+      const urlInput = document.getElementById(`cfg-supabase-url`);
+      const keyInput = document.getElementById(`cfg-supabase-key`);
+      appState.supabaseConfig = {
+        url: urlInput ? urlInput.value.trim() : ``,
+        anonKey: keyInput ? keyInput.value.trim() : ``
+      };
+      await persistState();
+      const connected = await initSupabaseClient();
+      if (connected) {
+        showToast(`Client Supabase configurato e inizializzato.`, `ok`);
+      } else {
+        showToast(`Credenziali salvate in modalità Demo Locale.`, `info`);
+      }
+    }
+
+    function downloadVercelIndexHtml() {
+      const urlVal = appState.supabaseConfig.url || SUPABASE_CONFIG.SUPABASE_URL;
+      const keyVal = appState.supabaseConfig.anonKey || SUPABASE_CONFIG.SUPABASE_ANON_KEY;
+
+      let htmlSource = `<!DOCTYPE html>\n` + document.documentElement.outerHTML;
+      const sdkTag = `<` + `script src="${SUPABASE_CONFIG.SDK_CDN_URL}"><` + `/script>`;
+      htmlSource = htmlSource.replace(
+        `<` + `script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"><` + `/script>`,
+        `<` + `script src="https://unpkg.com/lucide@1.43.0/dist/umd/lucide.min.js"><` + `/script>\n  ${sdkTag}`
+      );
+      htmlSource = htmlSource.replace(SUPABASE_CONFIG.SUPABASE_URL, urlVal);
+      htmlSource = htmlSource.replace(SUPABASE_CONFIG.SUPABASE_ANON_KEY, keyVal);
+
+      if (window.notebookAppApi && typeof window.notebookAppApi.triggerFileDownload === `function`) {
+        window.notebookAppApi.triggerFileDownload({
+          content: htmlSource,
+          contentType: `text/plain`,
+          encoding: `UTF-8`,
+          filename: `index.html`
+        });
+        showToast(`File index.html esportato con SDK Supabase integrato per deploy su Vercel.`, `ok`);
+      } else {
+        showToast(`Esportazione pronta nel pacchetto Vercel.`, `info`);
+      }
+    }
+
+    // =========================================================================
+    // 13. TOAST INLINE & BOOTSTRAP
+    // =========================================================================
+    function showToast(message, status) {
+      const region = document.getElementById(`toast-region`);
+      if (!region) return;
+      const item = document.createElement(`div`);
+      item.className = `toast-item`;
+      item.setAttribute(`data-status`, status || `info`);
+      item.innerHTML = `<span>${message}</span>`;
+      const closeBtn = document.createElement(`button`);
+      closeBtn.type = `button`;
+      closeBtn.textContent = `×`;
+      closeBtn.style.cssText = `background:transparent;border:none;color:inherit;font-size:1.1rem;cursor:pointer;padding:0 0.25rem;`;
+      closeBtn.onclick = () => item.remove();
+      item.appendChild(closeBtn);
+      region.appendChild(item);
+      setTimeout(() => {
+        if (item.parentNode) item.remove();
+      }, 4500);
+    }
+
+    async function bootstrapApp() {
+      await loadPersistedState();
+
+      const unitEl = document.getElementById(`global-unit-filter`);
+      const periodEl = document.getElementById(`global-period-filter`);
+      if (unitEl) unitEl.value = appState.selectedUnit || `ALL`;
+      if (periodEl) periodEl.value = appState.selectedPeriod || `2026-11`;
+
+      await initSupabaseClient();
+      switchTab(appState.activeTab || `roster`);
+      renderAll();
+
+      if (window.lucide && typeof window.lucide.createIcons === `function`) {
+        window.lucide.createIcons();
+      }
+      if (window.notebookAppApi && typeof window.notebookAppApi.notifyAppReady === `function`) {
+        window.notebookAppApi.notifyAppReady();
+      }
+    }
+
+    document.addEventListener(`DOMContentLoaded`, bootstrapApp);
+  </script>
+</body>
+</html>
